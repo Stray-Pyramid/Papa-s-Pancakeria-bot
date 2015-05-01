@@ -1,5 +1,3 @@
-#C:\Users\AnthonyB\Desktop\python\papas_pancake_bot.py
-
 import time
 import os
 import math
@@ -10,10 +8,15 @@ from numpy import *
 
 from desktopmagic.screengrab_win32 import (getDisplayRects,getScreenAsImage,getRectAsImage)
 
+# Current max day
+# 17
+
 # TODO
 # --------------
-# 1. First day cooking times is 16 - 17 seconds.
-# 2. Day count : Get from day intro, or new game = day 1
+# 1. pancake/waffle mixables (Blueberry)
+# 2. Drink making :(
+# 3. Finish ingredient coordinates / ingredient sums
+# 4. Handle game won scenario
 
 # Globals
 # -----------------
@@ -24,34 +27,43 @@ y_pad = 329
 x_limit = x_pad + 640
 y_limit = y_pad + 480
 
-#Pancake cook time: 16 seconds
-pancake_cook_time = 33
+#Pancake cook time: 33 seconds, 16 seconds for first day
+def_pancake_cook_time = 34
+first_day = False
 
 orders = {}
 waitingOrders = []
 
 grillGroups = {}
 grills = {1:True,2:True,3:True,4:True,5:True,6:True,7:True,8:True}
+irons = {1:True,2:True,3:True,4:True}
 
 #Getting the handler of the active python console
 console_handle = win32gui.GetForegroundWindow()
-	
+
 class Coor:
 	preload_continue = (565, 458)
 	
 	mm_play = (347, 351)
 	mm_sound = (621, 362)
-	mm_slot1 = (129, 334)
-	mm_slot2 = (319, 334)
-	mm_slot3 = (513, 334)
 	
-	mm_delete_slot1 = (202, 76)
-	mm_delete_slot2 = (394, 76)
-	mm_delete_slot3 = (585, 76)
+	mm_slot = {
+		'1' : (129, 334),
+		'2' : (319, 334),
+		'3' : (513, 334)
+	}
 	
-	mm_erasegmcnfm1 = (130, 250)
-	mm_erasegmcnfm2 = (320, 250)
-	mm_erasegmcnfm3 = (510, 250)
+	mm_delete_slot = {
+		'1' : (202, 76),
+		'2' : (394, 76),
+		'3' : (585, 76)
+	}
+	
+	mm_erasegmcnfm = {
+		'1' : (130, 250),
+		'2' : (320, 250),
+		'3' : (510, 250)
+	}
 	
 	mm_resume_save = (305, 435)
 	
@@ -74,9 +86,6 @@ class Coor:
 	#Grill Station controls
 	gril_cancel = (60, 385)
 	gril_confirm = (565, 390)
-
-	#Grill Station ingredients
-	gril_batter = (260, 385)
 	
 	#Grill Station grills
 	grill = {
@@ -88,6 +97,13 @@ class Coor:
 		6:(185, 290),
 		7:(305, 290),
 		8:(425, 290)
+	}
+	
+	iron = {
+		1:(65, 115),
+		2:(185, 115),
+		3:(305, 115),
+		4:(430, 115)
 	}
 	
 	#Build station controls
@@ -102,22 +118,23 @@ class Coor:
 	daycom_continue2 = (313, 450)
 	daycom_continue3 = (570, 460)
 	
-	
 class Area:
 	#Places which need Screengrab for the bot to see
 	mm_sound = (x_pad+620, y_pad+358, x_pad+629, y_pad+367)
 	mm_play = (x_pad+278, y_pad+338, x_pad+278+56, y_pad+338+28)
 	
-	#Save Slot delete save button
-	mm_delete_slot1 = (x_pad+184, y_pad+61, x_pad+184+29, y_pad+61+21)
-	mm_delete_slot2 = (x_pad+376, y_pad+61, x_pad+376+29, y_pad+61+21)
-	mm_delete_slot3 = (x_pad+568, y_pad+61, x_pad+568+29, y_pad+61+21)
+	#Save Slot delete button
+	mm_delete_slot = {
+		'1':(x_pad+184, y_pad+61, x_pad+184+29, y_pad+61+21),
+		'2':(x_pad+376, y_pad+61, x_pad+376+29, y_pad+61+21),
+		'3':(x_pad+568, y_pad+61, x_pad+568+29, y_pad+61+21)
+	}
 	
 	#Menu button in lower left when main game is running. Used as confirmation that a cut-scene has finished
 	menu_btn = (x_pad+17, y_pad+451, x_pad+17+41, y_pad+451+12)
 	
 	#Area of floor where new customers feet will be. Used to detect customers waiting for you to take their order
-	order_floor = (x_pad+110, y_pad+350, x_pad+110+60, y_pad+350+30)
+	order_floor = (x_pad+120, y_pad+365, x_pad+120+20, y_pad+365+30)
 	
 	#Used to detect when customers have finished reviewing their pancake.
 	pancake_tray = (x_pad+300, y_pad+350, x_pad+300+20, y_pad+350+20)
@@ -128,50 +145,106 @@ class Area:
 	#Used to detect when day summary has finished
 	continue1 = (x_pad+245, y_pad+434, x_pad+245+121, y_pad+434+28)
 	
+	#Day Number, visible during store opening
+	day_number = (x_pad+300, y_pad+445, x_pad+300+37, y_pad+445+23)
+	
+	#Day Title, accompanies day number, used to check when day number is fully visible
+	day_title = (x_pad+284, y_pad+418, x_pad+284+66, y_pad+418+4)
+	
+	#Continue Area on game load, used to detect when the game is finished loading
+	load_continue = (x_pad+550, y_pad+440, x_pad+550+4, y_pad+440+35)
+	load_screen = (x_pad+480, y_pad+440, x_pad+480+4, y_pad+440+35)
+	
 IngredientTypes = {
-	# name: type, coordinate
-	'pancake':				['base', Coor.build_base],
-	'waffle': 				['base', Coor.build_base],
+	# name: type, coordinate, timeToPour
+	'pancake':				['bread', (256, 384)],
+	'french': 				['bread', (357, 376)],
+	'waffle':					['waffle', (256, 384)],
 	
 	'butterpad':			['topping', (445, 235)],
 	'banana':				['topping', (445, 315)],
-	'blueberry':				['sprinkle', (175, 235)],
-	'choc_chip':			['sprinkle', (172, 283)],
-	'blueberry_sauce':	['sauce', (155, 140)],
-	'hot_sauce':			['sauce', (420, 140)]
+	'strawberry':			['topping', (445, 275)],
+	
+	'blueberry':				['sprinkle', (175, 235), 2.1],
+	'choc_chip':			['sprinkle', (172, 283), 3],
+	'rasberry':				['sprinkle', (177, 326), 2],
+	'cinnamon':				['sprinkle', (441, 192), 2.1],
+	'sugar':					['sprinkle', (175, 198), 2.2],
+	
+	'blueberry_sauce':	['sauce', (155, 140), 2],
+	'hot_sauce':			['sauce', (420, 140), 2],
+	'whipped_cream':	['sauce', (195, 133), 1.7],
+	'honey':					['sauce', (467, 133), 2]
 	
 }
 
+#Time it takes to apply = more points
+
 IngredientSums = {
 	# sum : name, type
-	#First one is red background, second is white background
-	14372:['pancake', 'batter'],
-	16683:['pancake', 'batter'],
+	14203:'pancake',
+	14372:'pancake',
+	16683:'pancake',
 	
-	16526:['butterpad', 'topping'],
-	17343:['butterpad', 'topping'],
+	14087:'french',
+	15671:'french',
+	
+	14170:'waffle',
+	14309:'waffle',
+	16360:'waffle',
+	
+	16526:'butterpad',
+	17343:'butterpad',
+	17360:'butterpad',
+	17126:'butterpad',
 
-	16429:['banana', 'topping'],
-	17075:['banana', 'topping'],
+	16234:'banana',
+	16429:'banana',
+	17075:'banana',
 	
-	11967:['blueberry', 'sprinkle'],
+	12145:'strawberry',
+	14174:'strawberry',
 	
-	9468:['choc_chip', 'sprinkle'],
+	11967:'blueberry',
+	10324:'blueberry',
+	
+	9468:'choc_chip',
+	11157:'choc_chip',
 
+	8495:'rasberry',
+	10176:'rasberry',
 	
+	16764:'sugar',
 	
-	15240:['blueberry_sauce', 'sauce'],
+	13827:'cinnamon',
+	16045:'cinnamon',
+	
+	15240:'blueberry_sauce',
+	19035:'blueberry_sauce',
+	15393:'blueberry_sauce',
 
-	14213:['hot_sauce', 'sauce'],	
-	14738:['hot_sauce', 'sauce'],
-	18600:['hot_sauce', 'sauce']
+	18249:'whipped_cream',
+	18988:'whipped_cream',
+	
+	14213:'hot_sauce',	
+	14738:'hot_sauce',
+	18600:'hot_sauce',
+	
+	18086:'honey'
 }
 	
 	
 Counts = {
 	9838 : 1,
-	16429: 2,
+	8511: 1,
+	17360 : 1,
+	
+	13693: 2,
+	11560: 2,
+	
 	12493 : 3,
+	16526: 3,
+	14421: 3,
 	
 	9840 : 4,
 	11188 : 4
@@ -326,6 +399,8 @@ VK_CODE = {
            "'":0xDE,
            '`':0xC0}
  
+# Code Starts Here.
+#------------------------------------------
 
 def set_foreground_window(handle):
 	win32gui.SetForegroundWindow(handle)
@@ -362,19 +437,11 @@ def writeString(string):
 		else:
 			pressKey(char)
 
-def screenGrab():
-	box = (x_pad, y_pad, x_limit, y_limit)
-	im = getRectAsImage(box)
-	im.save('C:\\Users\\AnthonyB\\Desktop\\python\\full_snap__'+  str(int(time.time()))+'.png', 'PNG')
-	return im
-
 def grabArea(args):
 	im = ImageOps.grayscale(getRectAsImage(args))
 	a = array(im.getcolors())
 	a = a.sum()
-	#im.save('C:\\Users\\AnthonyB\\Desktop\\python\\full_snap__' + str(a) +'.png', 'PNG')
 	return a
-
 			
 def get_cords():
 	x,y = win32api.GetCursorPos()
@@ -386,7 +453,6 @@ def leftClick():
 	win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,0,0)
 	time.sleep(.1)
 	win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,0,0)
-	#print "Click." #completely optional. But nice for debugging purposes.
 
 def leftDown():
 	win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,0,0)
@@ -405,29 +471,9 @@ def clickPos(cord):
 
 	
 	
+	
 
-	
-	
-	
-def get_gender():
-	set_foreground_window(console_handle)
-	gender = raw_input('Male or female? \n')
-	if gender.lower() == 'm' or gender[:4].lower() == 'male':
-		print 'Male'
-		return 'male'
-	elif gender.lower() == 'f' or gender[:6].lower() == 'female':
-		print 'Female'
-		return 'female'
-	else:
-		print 'Sorry, I didnt understand that.'
-		get_gender()
 
-def get_point_in_ellipse(x,y,deg):
-	# xPos = x cos t
-	# yPos = y sin t
-	xPos = x * (math.cos(math.radians(deg)))
-	yPos = y * (math.sin(math.radians(deg)))
-	return (int(math.floor(xPos)), int(math.floor(yPos)))
 
 def check_sound():
 	soundOFF = 3414
@@ -448,6 +494,105 @@ def check_sound():
 		print "I don't understand '"+sound+"'"
 		check_sound()
 
+def select_save():
+	empty_slot = 7790
+	menu_btn = 12564
+	day_one_sum = 4521
+	day_title_sum = 2274
+	
+	set_foreground_window(console_handle)
+	save = raw_input("Which slot? (1 - 3)")[:1]
+	if save == '1' or save == '2' or save == '3':
+		
+		#Check if slot already has save
+		if grabArea(Area.mm_delete_slot[save]) != empty_slot:
+			print 'This slot already has a save'
+			while True:
+				set_foreground_window(console_handle)
+				choice = raw_input("Continue or Delete? \n")
+				if choice[:8].lower() == 'continue':
+					print 'Continuing from save...'
+					clickPos(Coor.mm_slot[save])
+					time.sleep(1)
+					clickPos(Coor.mm_resume_save)
+					
+					#or grabArea(Area.load_continue) == 5365
+					time.sleep(1)
+					if grabArea(Area.load_screen) == 140:
+						print 'Loading level...'
+						while grabArea(Area.load_continue) != 5365:
+							time.sleep(1)
+						clickPos(Coor.daycom_continue3)
+
+					print 'Waiting...'						
+					while grabArea(Area.day_title) != day_one_sum:
+						time.sleep(.2)
+					time.sleep(1)
+					dayNumSum = grabArea(Area.day_number)
+					if dayNumSum == day_title_sum:
+						print 'It is the first day, a tutorial needs completing'
+						print 'Waiting for cutscene to finish...'
+						while grabArea(Area.menu_btn) != menu_btn:
+							time.sleep(2)
+						do_tutorial()
+						return True
+					else:
+						print 'It is not the first day'
+						print 'Waiting for cutscene to finish...'
+						while grabArea(Area.menu_btn) != menu_btn:
+							time.sleep(2)
+						print "Let's go!"
+						return False
+					
+				elif choice[:6].lower() == 'delete':
+					print 'Deleting...'
+					clickPos(Coor.mm_delete_slot[save])
+					time.sleep(.5)
+					clickPos(Coor.mm_erasegmcnfm[save])
+					time.sleep(.5)
+					clickPos(Coor.mm_slot[save])
+					new_game()
+					return True
+				else:
+					print "I don't understand!"
+		else:
+			clickPos(Coor.mm_slot[save])
+			new_game()
+			return True
+
+	else:
+		print 'Pick a proper slot!'
+		select_save()
+		
+def new_game():
+	gender = get_gender()
+
+	if gender == 'male':
+		clickPos(Coor.char_male)
+	elif gender == 'female':
+		clickPos(Coor.char_female)
+			
+	while True:
+		try:
+			set_foreground_window(console_handle)
+			name = raw_input("What is your name? \n")
+			clickPos(Coor.char_nameField)
+			writeString(name)
+			break
+		except:
+			print "Oops! Try entering a name without special characters."
+			clickPos(Coor.char_nameField)
+			time.sleep(0.2)
+			clickPos(Coor.char_nameField)
+			pressKey('backspace')
+	
+	clickPos(Coor.char_continue)
+	time.sleep(1)
+	clickPos(Coor.intro_skip)
+	do_tutorial()
+
+
+
 def change_station(station):
 	#!!! A Fourth station is yet to be unlocked in the game.
 	if station == 'order':
@@ -462,19 +607,21 @@ def change_station(station):
 		sys.exit()
 		
 	#Time it takes to transition between stations
-	time.sleep(.8)
+	time.sleep(.5)
 	
 def take_order():
-	time.sleep(.6)
+	time.sleep(.4)
 	clickPos(Coor.take_order)
 	time.sleep(2)
 	screen = grabArea((x_pad+540, y_pad+360, x_pad+540+60, y_pad+360+30))
+	print 'Reading order...'
 	while grabArea((x_pad+540, y_pad+360, x_pad+540+60, y_pad+360+30)) == screen:
-		print 'Reading order...'
 		time.sleep(1)
 
-def place_batter(grill):
-	mousePos(Coor.gril_batter)
+
+		
+def place_batter(grill, name):
+	mousePos(IngredientTypes[name][1])
 	leftDown()
 	mousePos(Coor.grill[grill])
 	leftUp()
@@ -488,61 +635,98 @@ def finish_pancake(grill):
 	mousePos(Coor.gril_confirm)
 	leftUp()
 
+
+	
+def place_waffle(iron):
+	mousePos(IngredientTypes['pancake'][1])
+	leftDown()
+	mousePos(Coor.iron[iron])
+	leftUp()
+	
+def flip_waffle(iron):
+	clickPos(Coor.iron[iron])
+		
+def finish_waffle(iron):
+	mousePos(Coor.iron[iron])
+	leftDown()
+	mousePos(Coor.gril_confirm)
+	leftUp()
+	
+
+	
+def get_point_in_ellipse(x,y,deg):
+	# xPos = x cos t
+	# yPos = y sin t
+	xPos = x * (math.cos(math.radians(deg)))
+	yPos = y * (math.sin(math.radians(deg)))
+	return (int(math.floor(xPos)), int(math.floor(yPos)))
+	
 def add_base():
 	mousePos(Coor.build_base)
 	leftDown()
 	mousePos(Coor.build_center)
 	leftUp()
 		
-def spread_topping(pos, type, points=20):
-	if type == 'topping':
-		delay = .5
-	elif type == 'sprinkle':
-		delay = .04
-	elif type == 'sauce':
-		delay = .11
+def spread_topping(name, points=20):
 	
-	if type == 'topping':
+	if IngredientTypes[name][0] == 'topping':
 		#Step 1: Get number of toppings
 		toppings_num = points
 		if toppings_num == 1:
-			mousePos(pos)
+			mousePos(IngredientTypes[name][1])
 			leftDown()
-			time.sleep(.5)
 			mousePos(Coor.build_center)
-			time.sleep(.5)
+			time.sleep(.2)
 			leftUp()
 		else:
 			#Step 2: Divide 360 degrees by number of toppings
 			increment = 360 / toppings_num
 			#Step 3: Hope.
 			for x in range(1, toppings_num+1):
-				mousePos(pos)
+				mousePos(IngredientTypes[name][1])
 				leftDown()
-				time.sleep(.5)
+				time.sleep(.1)
 				x, y = get_point_in_ellipse(45, 45, x*increment)
-				print 'Placing Butterpad topping at '+str(x)+', '+str(y)+' from pancake center'
+				print 'Placing topping at '+str(x)+', '+str(y)+' from pancake center'
 				mousePos((Coor.build_center[0]+x, Coor.build_center[1]+y))
-				time.sleep(.5)
+				time.sleep(.1)
 				leftUp()
 			
 	else:
+		points  = int(IngredientTypes[name][2] / 0.1)
 		increment = 360 / points
-		time.sleep(.5)
-		mousePos(pos)
+		mousePos(IngredientTypes[name][1])
 		leftDown()
 		for x in range(1, points+1):
-			time.sleep(delay)
+			time.sleep(.1)
 			x, y = get_point_in_ellipse(45, 45, x*increment)
-			print 'Placing Topping at '+str(x)+', '+str(y)+' from pancake center'
+			print 'Placing sprinkle/sauce at '+str(x)+', '+str(y)+' from pancake center'
 			mousePos((Coor.build_center[0]+x, Coor.build_center[1]+y))
 			leftUp()
+		#Buffer
+		time.sleep(.4)
 
+
+
+
+def move_order_to_line(slot):
+	mousePos(Coor.ordr_active)
+	leftDown()
+	mousePos((20+(slot*37), 10))
+	leftUp()
+		
+def move_order_to_tray(slot):
+	mousePos((20+(slot*37), 10))
+	leftDown()
+	mousePos(Coor.build_tickt)
+	leftUp()
+		
+		
 def do_tutorial():
 	menu_btn = 12564
-	order_floor = 2966
+	order_floor = 1444
 	pancake_tray = 1513
-
+	
 	#wait until intro sequence is finished
 	while grabArea(Area.menu_btn) != menu_btn:
 		print 'Waiting for cutscene to finish...'
@@ -581,9 +765,9 @@ def do_tutorial():
 	leftUp()
 	
 	#do pancakes
-	place_batter(6)
+	place_batter(6, 'pancake')
 	time.sleep(.1)
-	place_batter(7)
+	place_batter(7, 'pancake')
 	
 	currentTime = int(time.time())
 	print('Pancakes placed at '+str(currentTime))
@@ -618,13 +802,13 @@ def do_tutorial():
 	
 	#drag 3 butter pads to 3 elliptic points on the pancake
 	#maximum distribution.
-	spread_topping(IngredientTypes['butterpad'][1], IngredientTypes['butterpad'][0], 3)
+	spread_topping('butterpad', 3)
 
 	#drag and release blueberries in circle path
-	spread_topping(IngredientTypes['blueberry'][1], IngredientTypes['blueberry'][0])
+	spread_topping('blueberry')
 
 	#blue and release blueberry sauce in circle path
-	spread_topping(IngredientTypes['blueberry_sauce'][1], IngredientTypes['blueberry_sauce'][0])
+	spread_topping('blueberry_sauce')
 	
 	#click finish
 	time.sleep(1)
@@ -648,159 +832,12 @@ def do_tutorial():
 	
 	#END
 	print 'TUTORIAL COMPLETE!'
-
-def new_game():
-	gender = get_gender()
-
-	if gender == 'male':
-		clickPos(Coor.char_male)
-	elif gender == 'female':
-		clickPos(Coor.char_female)
-			
-	while True:
-		try:
-			set_foreground_window(console_handle)
-			name = raw_input("What is your name? \n")
-			clickPos(Coor.char_nameField)
-			writeString(name)
-			break
-		except:
-			print "Oops! Try entering a name without special characters."
-			clickPos(Coor.char_nameField)
-			time.sleep(0.2)
-			clickPos(Coor.char_nameField)
-			pressKey('backspace')
-	
-	clickPos(Coor.char_continue)
-	time.sleep(1)
-	clickPos(Coor.intro_skip)
-	do_tutorial()
-
-def select_save():
-	empty_slot = 7790
-	menu_btn = 12564
-	
-	set_foreground_window(console_handle)
-	save = raw_input("Which slot? (1 - 3)")
-	if save == '1':
-		#Check if slot already has save
-		if grabArea(Area.mm_delete_slot1) != empty_slot:
-			print 'This slot already has a save'
-			while True:
-				set_foreground_window(console_handle)
-				choice = raw_input("Continue or Delete? \n")
-				if choice[:8].lower() == 'continue':
-					print 'Continuing from save...'
-					clickPos(Coor.mm_slot1)
-					time.sleep(1)
-					clickPos(Coor.mm_resume_save)
-					while grabArea(Area.menu_btn) != menu_btn:
-						print 'Waiting for cutscene to finish...'
-						time.sleep(2)	
-					print "Let's go!"
-					break
-				elif choice[:6].lower() == 'delete':
-					print 'Deleting...'
-					clickPos(Coor.mm_delete_slot1)
-					time.sleep(.5)
-					clickPos(Coor.mm_erasegmcnfm1)
-					time.sleep(.5)
-					clickPos(Coor.mm_slot1)
-					new_game()
-					break
-				else:
-					print "I don't understand!"
-		else:
-			clickPos(Coor.mm_slot1)
-			new_game()
-
-	elif save == '2':
-		#Check if slot already has save
-		if grabArea(Area.mm_delete_slot2) != empty_slot:
-			print 'This slot already has a save'
-			while True:
-				set_foreground_window(console_handle)
-				choice = raw_input("Continue or Delete? \n")
-				if choice[:8].lower() == 'continue':
-					print 'Continuing from save...'
-					clickPos(Coor.mm_slot2)
-					time.sleep(1)
-					clickPos(Coor.mm_resume_save)
-					while grabArea(Area.menu_btn) != menu_btn:
-						print 'Waiting for cutscene to finish...'
-						time.sleep(2)	
-					print "Let's go!"
-					break
-				elif choice[:6].lower() == 'delete':
-					print 'Deleting...'
-					clickPos(Coor.mm_delete_slot2)
-					time.sleep(.5)
-					clickPos(Coor.mm_erasegmcnfm2)
-					time.sleep(.5)
-					clickPos(Coor.mm_slot2)
-					new_game()
-					break
-				else:
-					print "I don't understand!"
-		else:
-			clickPos(Coor.mm_slot2)
-			new_game()
-			
-	elif save == '3':
-		#Check if slot already has save
-		if grabArea(Area.mm_delete_slot3) != empty_slot:
-			print 'This slot already has a save'
-			while True:
-				set_foreground_window(console_handle)
-				choice = raw_input("Continue or Delete? \n")
-				if choice[:8].lower() == 'continue':
-					print 'Continuing from save...'
-					clickPos(Coor.mm_slot3)
-					time.sleep(1)
-					clickPos(Coor.mm_resume_save)
-					while grabArea(Area.menu_btn) != menu_btn:
-						print 'Waiting for cutscene to finish...'
-						time.sleep(2)	
-					print "Let's go!"
-					break
-				elif choice[:6].lower() == 'delete':
-					print 'Deleting...'
-					clickPos(Coor.mm_delete_slot3)
-					time.sleep(.5)
-					clickPos(Coor.mm_erasegmcnfm3)
-					time.sleep(.5)
-					clickPos(Coor.mm_slot3)
-					new_game()
-					break
-				else:
-					print "I don't understand!"
-		else:
-			clickPos(Coor.mm_slot3)
-			new_game()
-
-	else:
-		print 'Pick a proper slot!'
-		select_save()
-
-def move_order_to_line(slot):
-	mousePos(Coor.ordr_active)
-	leftDown()
-	mousePos((20+(slot*37), 10))
-	leftUp()
-		
-def move_order_to_tray(slot):
-	mousePos((20+(slot*37), 10))
-	leftDown()
-	mousePos(Coor.build_tickt)
-	leftUp()
-		
-		
-
 		
 		
 def interpret_order():
 	#Returns the type of ingredients and number of pancakes / waffles that can order needs
 	grillsNeeded = 0
+	ironsNeeded = 0
 	ingredients = []
 	
 	for x in range(0, 8):
@@ -810,23 +847,25 @@ def interpret_order():
 			print 'Slot '+str(x+1)+' is empty'
 		else:
 			try:
-				ingredient = IngredientSums[sum][0]
+				ingredient = IngredientSums[sum]
 				print 'Found '+ingredient
-				if IngredientSums[sum][1] == 'topping':
+				if IngredientTypes[IngredientSums[sum]][0] == 'topping':
 					countSum = grabArea((x_pad+562, y_pad+267-(x*30), x_pad+562+66, y_pad+267-(x*30)+18))
 					try:
 						toppingCount = Counts[countSum]
 					except:
-						print 'Count not found for slot '+str(x+1)
-						print sum
+						print 'Toppping count not found for slot '+str(x+1)
+						print countSum
 						print 'Please write the number of toppings required.'
 						toppingCount = int(raw_input())
 						
 					ingredients.append([ingredient, toppingCount])
 				else:
 					ingredients.append([ingredient])
-				if Ingredients[sum][1] == 'batter':
+				if IngredientTypes[IngredientSums[sum]][0] == 'bread':
 					grillsNeeded += 1
+				elif IngredientTypes[IngredientSums[sum]][0] == 'waffle':
+					ironsNeeded += 1
 				
 			except:
 				print 'Found unregisterd ingredient'
@@ -834,11 +873,11 @@ def interpret_order():
 				print 'Sum: '+str(sum)
 	
 	print 'Number of grills needed: '+str(grillsNeeded)
+	print 'Number of irons needed: '+str(ironsNeeded)
 	print 'Ingredient list'
 	print ingredients
-	return ingredients, grillsNeeded
+	return ingredients, grillsNeeded, ironsNeeded
 	
-
 	
 def get_ticketLineNum():
 	#Find first available spot on line
@@ -850,8 +889,12 @@ def get_ticketLineNum():
 			print 'Spot in line found'
 			return x
 		
+		
 def allocate_grills(number):
 	availGrills = list()
+	if number == 0:
+		print 'No grills to allocate'
+		return []
 	
 	for grill in grills:
 		if grills[grill] == True:
@@ -864,7 +907,26 @@ def allocate_grills(number):
 			print 'Grill '+str(grill)+' not available'
 	print availGrills
 	return availGrills
+	
+def allocate_irons(number):
+	availIrons = list()
+	if number == 0:
+		print 'No irons to allocate'
+		return []
+	
+	for iron in irons:
+		if irons[iron] == True:
+			print 'Iron '+str(iron)+' is available'
+			availIrons.append(iron)
+			irons[iron] = False
+			if len(availIrons) == number:
+				break
+		else:
+			print 'Iron '+str(iron)+' not available'
+	print availIrons
+	return availIrons
 
+	
 def availableGrills_count():
 	count = 0
 	for grill in grills:
@@ -872,18 +934,38 @@ def availableGrills_count():
 			count += 1
 	print 'Available grills: '+str(count)
 	return count
-		
-		
-def main_loop():
 
-	order_floor = 2966
+def availableIrons_count():
+	count = 0
+	for iron in irons:
+		if irons[iron] == True:
+			count += 1
+	print 'Available irons: '+str(count)
+	return count		
+	
+
+	
+def main_loop(first_day):
+	print first_day
+	if first_day:
+		pancake_cook_time = 16
+	else:
+		pancake_cook_time = def_pancake_cook_time
+	print 'Cooking time set to '+str(pancake_cook_time)+' seconds'
+	
 	pancake_tray = 1513
 	
 	#Main loop goes here.
 	print "MAIN LOOP BEGINNING"
 	
+	#Avoiding the problems of the blue ribbon
+	change_station('build')
+	change_station('order')
+	
+	order_floor = grabArea(Area.order_floor)
+	
 	while True:
-		
+		time.sleep(.1)
 		#If customer is present and a slot on the line is available,
 		if grabArea(Area.order_floor) != order_floor and (len(orders)+len(waitingOrders)) < 12:
 			print 'Customer detected!'
@@ -891,13 +973,13 @@ def main_loop():
 			take_order()
 
 			#Interpret order
-			ingredients, grillsNeeded = interpret_order()
+			ingredients, grillsNeeded, ironsNeeded = interpret_order()
 			
 			#Get ticketLineNum
 			ticketLineNum = get_ticketLineNum()
 			
 			#if needed number of grills is available,
-			if availableGrills_count() >= grillsNeeded:				
+			if availableGrills_count() >= grillsNeeded or availableIrons_count() >= ironsNeeded:		
 				print 'Making order...'
 				
 				#Put order in order[]
@@ -906,20 +988,30 @@ def main_loop():
 				#get list of available grills
 				grillsAllocated = allocate_grills(grillsNeeded)
 				
+				#get list of available irons
+				ironsAllocated = allocate_irons(ironsNeeded)
+				
 				#Go to grill station
 				change_station('grill')
 				
 				#Create Grill group
-				grillGroups[ticketLineNum] = [(time.time()+pancake_cook_time), False, grillsAllocated]
+				grillGroups[ticketLineNum] = [(time.time()+pancake_cook_time), False, grillsAllocated, ironsAllocated]
 				
 				#place pancakes
-				for grill in grillGroups[ticketLineNum][2]:
-					place_batter(grill)
+				grillNum = 0
+				ironNum = 0
+				for ingredient in ingredients:
+					if IngredientTypes[ingredient[0]][0] == 'bread':
+						place_batter(grillsAllocated[grillNum], ingredient[0])
+						grillNum += 1
+					if IngredientTypes[ingredient[0]][0] == 'waffle':
+						place_waffle(ironsAllocated[ironNum])
+						ironNum += 1
 				
 			else:
 				#Add order to waiting orders
 				print 'Order added to waiting orders'
-				waitingOrders.append([ticketLineNum, grillsNeeded, ingredients])
+				waitingOrders.append([ticketLineNum, grillsNeeded, ironsNeeded, ingredients])
 			
 			#Move order ticket to topline, record position
 			move_order_to_line(ticketLineNum)
@@ -929,10 +1021,6 @@ def main_loop():
 			print 'Number of grill groups: '+str(len(grillGroups))
 			print 'Number of waiting orders: '+str(len(waitingOrders))
 			change_station('order')
-
-		else:
-			print 'No new customers / Line is full'
-
 				
 		#If any pancakes need to be flipped or at completion
 		#Avoiding a runtime error: dictionary changed size during iteration
@@ -946,24 +1034,30 @@ def main_loop():
 				change_station('grill')
 				
 				if grillGroups[orderID][1] == False:
-				#Flip Pancakes
+				#Flip Pancakes!!!!!!!!!!!!!!!!!!!!!!!!
 					for grillSlot in grillGroups[orderID][2]:
 						flip_pancake(grillSlot)
+					for ironSlot in grillGroups[orderID][3]:
+						flip_waffle(ironSlot)
 					grillGroups[orderID][0] += pancake_cook_time
 					grillGroups[orderID][1] = True
+					
 					change_station('order')
 
-				elif grillGroups[orderID][1] == True:		
+				elif grillGroups[orderID][1] == True:
 				#Pancakes are cooked
 					for grillSlot in grillGroups[orderID][2]:
 						finish_pancake(grillSlot)
 						grills[grillSlot] = True
+					for ironSlot in grillGroups[orderID][3]:
+						finish_waffle(ironSlot)
+						irons[ironSlot] = True
 					del grillGroups[orderID]
 					
 					#Any orders waiting for grill slots?
 					while len(waitingOrders) > 0:
-						if waitingOrders[0][1] > availableGrills_count():
-							print 'Not enough grills for order that needs '+str(waitingOrders[0][1])+' grills'
+						if waitingOrders[0][1] > availableGrills_count() or waitingOrders[0][2] > availableIrons_count():
+							print 'Not enough grills/irons for order that needs '+str(waitingOrders[0][1])+' grills and '+str(waitingOrders[0][2])+' irons'
 							break
 
 						print 'Resuming order'
@@ -971,7 +1065,8 @@ def main_loop():
 						#Get order info
 						ticketLineNum = waitingOrders[0][0]
 						grillsNeeded = waitingOrders[0][1]
-						ingredients = waitingOrders[0][2]
+						ironsNeeded = waitingOrders[0][2]
+						ingredients = waitingOrders[0][3]
 						del waitingOrders[0]
 						
 						#Put order in orders[]
@@ -980,6 +1075,9 @@ def main_loop():
 						#get list of available grills
 						grillsAllocated = allocate_grills(grillsNeeded)
 						
+						#get list of available irons
+						ironsAllocated = allocate_irons(ironsNeeded)
+						
 						#Go to grill station
 						change_station('grill')
 						
@@ -987,8 +1085,15 @@ def main_loop():
 						grillGroups[ticketLineNum] = [(time.time()+pancake_cook_time), False, grillsAllocated]
 						
 						#place pancakes
-						for grill in grillGroups[ticketLineNum][2]:
-							place_batter(grill)
+						grillNum = 0
+						ironNum = 0
+						for ingredient in ingredients:
+							if IngredientTypes[ingredient[0]][0] == 'bread':
+								place_batter(grillsAllocated[grillNum], ingredient[0])
+								grillNum += 1
+							if IngredientTypes[ingredient[0]][0] == 'waffle':
+								place_waffle(ironsAllocated[ironNum])
+								ironNum += 1
 					
 
 					#Go to build station
@@ -1000,25 +1105,24 @@ def main_loop():
 					for ingredient in orders[orderID]:
 						print ingredient
 						print IngredientTypes[ingredient[0]]
-						if IngredientTypes[ingredient[0]][0] == 'base':
+						if IngredientTypes[ingredient[0]][0] == 'bread' or IngredientTypes[ingredient[0]][0] == 'waffle':
 							add_base()
+							time.sleep(.1)
 						elif IngredientTypes[ingredient[0]][0] == 'topping':
-							spread_topping(IngredientTypes[ingredient[0]][1], 'topping',ingredient[1])
-						elif IngredientTypes[ingredient[0]][0] == 'sprinkle':
-							spread_topping(IngredientTypes[ingredient[0]][1], 'sprinkle')
-						elif IngredientTypes[ingredient[0]][0] == 'sauce':
-							spread_topping(IngredientTypes[ingredient[0]][1], 'sauce')
+							spread_topping(ingredient[0],ingredient[1])
+						else:
+							spread_topping(ingredient[0])
 					
 					#Wait for animations to finish
-					time.sleep(1)
+					time.sleep(.5)
 					#Give to customer
 					clickPos(Coor.build_finish)
-					time.sleep(1)
+					time.sleep(.2)
 					move_order_to_tray(orderID)
 					
 					#wait until back at build station
+					print 'Waiting for customer...'
 					while grabArea(Area.pancake_tray) != pancake_tray:
-						print 'Waiting for customer...'
 						time.sleep(1)
 						#Check if day end
 						if grabArea(Area.flipline_logo) == 34737:
@@ -1035,19 +1139,26 @@ def main_loop():
 
 		
 def start_next_day():
+	menu_btn = 12564
+	
+	print 'Waiting...'
 	while grabArea(Area.continue1) != 25029:
-		print 'Waiting...'
 		time.sleep(1)
 	clickPos(Coor.daycom_continue1)
 	time.sleep(4)
 	clickPos(Coor.daycom_skipslots)
 	time.sleep(2)
 	clickPos(Coor.daycom_continue2)
-	time.sleep(5)
+	
+	print 'Waiting for next day to load...'
+	while grabArea(Area.load_continue) != 5365:
+		time.sleep(1)
+		
 	clickPos(Coor.daycom_continue3)
+
+	print 'Waiting for cutscene to finish...'	
 	while grabArea(Area.menu_btn) != menu_btn:
-		print 'Waiting for cutscene to finish...'
-		time.sleep(2)	
+		time.sleep(2)
 	print "Let's go!"
 	
 def startGame():
@@ -1068,11 +1179,12 @@ def startGame():
 	clickPos(Coor.mm_play)
 	
 	#Select save
-	select_save()
+	first_day = select_save()
 	
 	#Game begins here, at the point where customers are coming into your store
 	while True:
-		main_loop()
+		main_loop(first_day)
+		first_day = False
 		start_next_day()
 	
 #startGame()
