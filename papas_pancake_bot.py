@@ -8,15 +8,14 @@ from numpy import *
 
 from desktopmagic.screengrab_win32 import (getDisplayRects,getScreenAsImage,getRectAsImage)
 
-# Current max day
-# 17
+# Current max rank
+# 14
 
 # TODO
 # --------------
-# 1. pancake/waffle mixables (Blueberry)
-# 2. Drink making :(
-# 3. Finish ingredient coordinates / ingredient sums
-# 4. Handle game won scenario
+# 1. Drink making
+# 2. Finish ingredient coordinates / ingredient sums
+# 3. Handle game won scenario (Unknown if there actually is one)
 
 # Globals
 # -----------------
@@ -160,6 +159,28 @@ IngredientTypes = {
 	'pancake':				['bread', (256, 384)],
 	'french': 				['bread', (357, 376)],
 	'waffle':					['waffle', (256, 384)],
+		
+	'blueberry_pancake':['combo', 'pancake', 'blueberry_mix'],
+	'blueberry_french':	['combo', 'french', 'blueberry_mix'],
+	'blueberry_waffle':	['combo', 'waffle', 'blueberry_mix'],
+		
+	'chocolate_pancake':['combo', 'pancake', 'chocolate_mix'],
+	'chocolate_french':	['combo', 'french', 'chocolate_mix'],
+	'chocolate_waffle':	['combo', 'waffle', 'chocolate_mix'],
+	
+	'pecan_pancake':		['combo','pancake','pecan_mix'],
+	'pecan_french':		['combo','french','pecan_mix'],
+	'pecan_waffle':		['combo','waffle','pecan_mix'],
+	
+	#Bacon. What?
+	'bacon_pancake':		['combo','pancake','bacon_mix'],
+	'bacon_french':		['combo','french','bacon_mix'],
+	'bacon_waffle':		['combo','waffle','bacon_mix'],
+	
+	'blueberry_mix':		['mix', (435, 395)],
+	'chocolate_mix':		['mix', (180, 398)],
+	'pecan_mix':			['mix', (462, 355)],
+	'bacon_mix':			['mix', (149, 355)],
 	
 	'butterpad':			['topping', (445, 235)],
 	'banana':				['topping', (445, 315)],
@@ -185,6 +206,26 @@ IngredientSums = {
 	14203:'pancake',
 	14372:'pancake',
 	16683:'pancake',
+	
+	21504:'blueberry_pancake',
+	25011:'blueberry_pancake',
+	
+	21041:'blueberry_waffle',
+	21043:'blueberry_waffle',
+	23288:'blueberry_waffle',
+	
+	18382:'chocolate_french',
+	20923:'chocolate_french',
+	19090:'chocolate_french',
+	
+	22102:'pecan_pancake',
+	23288:'pecan_pancake',
+	25046:'pecan_pancake',
+	
+	20629:'pecan_french',
+	22950:'pecan_french',
+	
+	21726:'bacon_pancake',
 	
 	14087:'french',
 	15671:'french',
@@ -217,6 +258,7 @@ IngredientSums = {
 	16764:'sugar',
 	
 	13827:'cinnamon',
+	13567:'cinnamon',
 	16045:'cinnamon',
 	
 	15240:'blueberry_sauce',
@@ -224,13 +266,15 @@ IngredientSums = {
 	15393:'blueberry_sauce',
 
 	18249:'whipped_cream',
+	18460:'whipped_cream',
 	18988:'whipped_cream',
 	
 	14213:'hot_sauce',	
 	14738:'hot_sauce',
 	18600:'hot_sauce',
 	
-	18086:'honey'
+	18086:'honey',
+	21823:'honey'
 }
 	
 	
@@ -442,6 +486,13 @@ def grabArea(args):
 	a = array(im.getcolors())
 	a = a.sum()
 	return a
+	
+def saveArea(args):
+	im = getRectAsImage(args)
+	a = ImageOps.grayscale(im)
+	a = array(a.getcolors())
+	a = a.sum()
+	im.save("C:/Users/AnthonyB/Desktop/python/"+str(a)+".png", 'PNG')
 			
 def get_cords():
 	x,y = win32api.GetCursorPos()
@@ -860,8 +911,16 @@ def interpret_order():
 						toppingCount = int(raw_input())
 						
 					ingredients.append([ingredient, toppingCount])
+				elif IngredientTypes[IngredientSums[sum]][0] == 'combo':
+					if IngredientTypes[IngredientTypes[IngredientSums[sum]][1]][0] == 'bread':
+						grillsNeeded += 1
+					elif IngredientTypes[IngredientTypes[IngredientSums[sum]][1]][0] == 'waffle':
+						ironsNeeded += 1
+					ingredients.append([IngredientTypes[IngredientSums[sum]][1], IngredientTypes[IngredientSums[sum]][2]])
+					
 				else:
 					ingredients.append([ingredient])
+					
 				if IngredientTypes[IngredientSums[sum]][0] == 'bread':
 					grillsNeeded += 1
 				elif IngredientTypes[IngredientSums[sum]][0] == 'waffle':
@@ -871,6 +930,8 @@ def interpret_order():
 				print 'Found unregisterd ingredient'
 				print 'Slot: '+str(x+1)
 				print 'Sum: '+str(sum)
+				saveArea(box)
+				
 	
 	print 'Number of grills needed: '+str(grillsNeeded)
 	print 'Number of irons needed: '+str(ironsNeeded)
@@ -943,7 +1004,19 @@ def availableIrons_count():
 	print 'Available irons: '+str(count)
 	return count		
 	
+def place_mixture(type, slot, ingredient):
+	print 'Placing '+ingredient+' on '+type+' at slot '+str(slot)
+	mousePos(IngredientTypes[ingredient][1])
+	leftDown()
+	time.sleep(.1)
+	if type=='grill':
+		mousePos(Coor.grill[slot])
+	elif type=='iron':
+		mousePos(Coor.iron[slot])
+	time.sleep(.1)
+	leftUp()
 
+		
 	
 def main_loop(first_day):
 	print first_day
@@ -959,6 +1032,7 @@ def main_loop(first_day):
 	print "MAIN LOOP BEGINNING"
 	
 	#Avoiding the problems of the blue ribbon
+	#!!! Add detection for blue ribbon to prevent station switching every single day
 	change_station('build')
 	change_station('order')
 	
@@ -979,7 +1053,7 @@ def main_loop(first_day):
 			ticketLineNum = get_ticketLineNum()
 			
 			#if needed number of grills is available,
-			if availableGrills_count() >= grillsNeeded or availableIrons_count() >= ironsNeeded:		
+			if availableGrills_count() >= grillsNeeded and availableIrons_count() >= ironsNeeded:		
 				print 'Making order...'
 				
 				#Put order in order[]
@@ -1003,10 +1077,20 @@ def main_loop(first_day):
 				for ingredient in ingredients:
 					if IngredientTypes[ingredient[0]][0] == 'bread':
 						place_batter(grillsAllocated[grillNum], ingredient[0])
+						try:
+							place_mixture('grill', grillsAllocated[grillNum], ingredient[1])
+						except:
+							pass
 						grillNum += 1
+
 					if IngredientTypes[ingredient[0]][0] == 'waffle':
 						place_waffle(ironsAllocated[ironNum])
+						try:
+							place_mixture('waffle', ironsAllocated[ironNum], ingredient[1])
+						except:
+							pass
 						ironNum += 1
+
 				
 			else:
 				#Add order to waiting orders
@@ -1034,7 +1118,7 @@ def main_loop(first_day):
 				change_station('grill')
 				
 				if grillGroups[orderID][1] == False:
-				#Flip Pancakes!!!!!!!!!!!!!!!!!!!!!!!!
+				#Flip Pancakes
 					for grillSlot in grillGroups[orderID][2]:
 						flip_pancake(grillSlot)
 					for ironSlot in grillGroups[orderID][3]:
@@ -1056,7 +1140,7 @@ def main_loop(first_day):
 					
 					#Any orders waiting for grill slots?
 					while len(waitingOrders) > 0:
-						if waitingOrders[0][1] > availableGrills_count() or waitingOrders[0][2] > availableIrons_count():
+						if waitingOrders[0][1] > availableGrills_count() and waitingOrders[0][2] > availableIrons_count():
 							print 'Not enough grills/irons for order that needs '+str(waitingOrders[0][1])+' grills and '+str(waitingOrders[0][2])+' irons'
 							break
 
@@ -1082,7 +1166,7 @@ def main_loop(first_day):
 						change_station('grill')
 						
 						#Create Grill group
-						grillGroups[ticketLineNum] = [(time.time()+pancake_cook_time), False, grillsAllocated]
+						grillGroups[ticketLineNum] = [(time.time()+pancake_cook_time), False, grillsAllocated, ironsAllocated]
 						
 						#place pancakes
 						grillNum = 0
@@ -1090,10 +1174,18 @@ def main_loop(first_day):
 						for ingredient in ingredients:
 							if IngredientTypes[ingredient[0]][0] == 'bread':
 								place_batter(grillsAllocated[grillNum], ingredient[0])
+								try:
+									place_mixture('grill', grillsAllocated[grillNum], ingredient[1])
+								except: pass
 								grillNum += 1
+
 							if IngredientTypes[ingredient[0]][0] == 'waffle':
 								place_waffle(ironsAllocated[ironNum])
+								try:
+									place_mixture('waffle', ironsAllocated[ironNum], ingredient[1])
+								except: pass
 								ironNum += 1
+
 					
 
 					#Go to build station
