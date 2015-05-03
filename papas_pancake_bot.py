@@ -10,16 +10,13 @@ from desktopmagic.screengrab_win32 import (getDisplayRects,getScreenAsImage,getR
 
 # Current max rank
 # 14
+# Reason: Drinking making mechanic not implemented into code.
 
-# TODO
-# --------------
-# 1. Drink making
-# 2. Finish ingredient coordinates / ingredient sums
-# 3. Handle game won scenario (Unknown if there actually is one)
 
 # Globals
 # -----------------
 
+# Set to the top left pixel of the game window. Best visible during gameplay.
 x_pad = 480
 y_pad = 329
 
@@ -28,7 +25,8 @@ y_limit = y_pad + 480
 
 #Pancake cook time: 33 seconds, 16 seconds for first day
 def_pancake_cook_time = 34
-first_day = False
+pancake_cook_time = 0
+is_first_day = False
 
 orders = {}
 waitingOrders = []
@@ -250,6 +248,7 @@ IngredientSums = {
 	10324:'blueberry',
 	
 	9468:'choc_chip',
+	9830:'choc_chip',
 	11157:'choc_chip',
 
 	8495:'rasberry',
@@ -1017,16 +1016,69 @@ def place_mixture(type, slot, ingredient):
 	leftUp()
 
 		
+def flip_cooking(currentStation):
+	#I could not think of a better name for this function.
+	#If pancakes / waffles / french toast group is ready to be flipped,
+	for grillGroup in grillGroups:
+		if grillGroups[grillGroup][0] <= time.time() and grillGroups[grillGroup][1] == False:
+			
+			#Go to cooking station
+			if currentStation != 'grill': change_station('grill')
+			
+			#Loop through all cooking station
+			for grillGroup in grillGroups:
+				if grillGroups[grillGroup][0] <= time.time() and grillGroups[grillGroup][1] == False:
+					for grillNum in grillGroups[grillGroup][2]:
+						flip_pancake(grillNum)
+					for ironNum in grillGroups[grillGroup][3]:
+						flip_waffle(ironNum)
+				print 'Pancake cook time is '+str(pancake_cook_time)
+				grillGroups[grillGroup][1] = True
+				grillGroups[grillGroup][0] += pancake_cook_time
+			
+			#Return to previous station
+			if currentStation != 'grill': change_station(currentStation)
+			return
 	
-def main_loop(first_day):
-	print first_day
-	if first_day:
+	print 'No grillgroups need to be flipped.'
+		
+
+		
+def make_pancakes(ticketLineNum):
+	#place pancakes
+	grillNum = 0
+	ironNum = 0
+	ingredients = orders[ticketLineNum]
+	grillsAllocated = grillGroups[ticketLineNum][2]
+	ironsAllocated = grillGroups[ticketLineNum][3]
+	
+	for ingredient in ingredients:
+		if IngredientTypes[ingredient[0]][0] == 'bread':
+			place_batter(grillsAllocated[grillNum], ingredient[0])
+			try:
+				place_mixture('grill', grillsAllocated[grillNum], ingredient[1])
+			except:
+				pass
+			grillNum += 1
+
+			if IngredientTypes[ingredient[0]][0] == 'waffle':
+				place_waffle(ironsAllocated[ironNum])
+			try:
+				place_mixture('waffle', ironsAllocated[ironNum], ingredient[1])
+			except:
+				pass
+			ironNum += 1
+	
+def main_loop(is_first_day):
+	pancake_tray = 1513
+
+	#One the first day, cooking time is halved due to the tutorial.
+	if is_first_day:
 		pancake_cook_time = 16
 	else:
 		pancake_cook_time = def_pancake_cook_time
 	print 'Cooking time set to '+str(pancake_cook_time)+' seconds'
 	
-	pancake_tray = 1513
 	
 	#Main loop goes here.
 	print "MAIN LOOP BEGINNING"
@@ -1071,26 +1123,7 @@ def main_loop(first_day):
 				#Create Grill group
 				grillGroups[ticketLineNum] = [(time.time()+pancake_cook_time), False, grillsAllocated, ironsAllocated]
 				
-				#place pancakes
-				grillNum = 0
-				ironNum = 0
-				for ingredient in ingredients:
-					if IngredientTypes[ingredient[0]][0] == 'bread':
-						place_batter(grillsAllocated[grillNum], ingredient[0])
-						try:
-							place_mixture('grill', grillsAllocated[grillNum], ingredient[1])
-						except:
-							pass
-						grillNum += 1
-
-					if IngredientTypes[ingredient[0]][0] == 'waffle':
-						place_waffle(ironsAllocated[ironNum])
-						try:
-							place_mixture('waffle', ironsAllocated[ironNum], ingredient[1])
-						except:
-							pass
-						ironNum += 1
-
+				make_pancakes(ticketLineNum)
 				
 			else:
 				#Add order to waiting orders
@@ -1168,32 +1201,15 @@ def main_loop(first_day):
 						#Create Grill group
 						grillGroups[ticketLineNum] = [(time.time()+pancake_cook_time), False, grillsAllocated, ironsAllocated]
 						
-						#place pancakes
-						grillNum = 0
-						ironNum = 0
-						for ingredient in ingredients:
-							if IngredientTypes[ingredient[0]][0] == 'bread':
-								place_batter(grillsAllocated[grillNum], ingredient[0])
-								try:
-									place_mixture('grill', grillsAllocated[grillNum], ingredient[1])
-								except: pass
-								grillNum += 1
+						make_pancakes(ticketLineNum)
 
-							if IngredientTypes[ingredient[0]][0] == 'waffle':
-								place_waffle(ironsAllocated[ironNum])
-								try:
-									place_mixture('waffle', ironsAllocated[ironNum], ingredient[1])
-								except: pass
-								ironNum += 1
-
+					#Check if any cooking needs to be flipped
+					flip_cooking('grill')
 					
-
 					#Go to build station
 					change_station('build')
-					
-#-------------------------------------------- Shit happens here
-					#build pancake
 
+					#build pancake
 					for ingredient in orders[orderID]:
 						print ingredient
 						print IngredientTypes[ingredient[0]]
@@ -1205,6 +1221,8 @@ def main_loop(first_day):
 						else:
 							spread_topping(ingredient[0])
 					
+					#Check if any cooking needs to be flipped again
+					flip_cooking('build')
 					#Wait for animations to finish
 					time.sleep(.5)
 					#Give to customer
@@ -1271,12 +1289,12 @@ def startGame():
 	clickPos(Coor.mm_play)
 	
 	#Select save
-	first_day = select_save()
+	is_first_day = select_save()
 	
 	#Game begins here, at the point where customers are coming into your store
 	while True:
-		main_loop(first_day)
-		first_day = False
+		main_loop(is_first_day)
+		is_first_day = False
 		start_next_day()
 	
 #startGame()
