@@ -5,7 +5,7 @@
 from PIL import ImageOps, ImageGrab
 import numpy as np
 
-from Location import *
+from constants import *
 
 def grabArea(rect):
     rect = Rect(rect)
@@ -25,23 +25,20 @@ def saveArea(rect):
     im = grabArea(rect)
     sum = sumArea(rect)
     im.save("./"+str(sum)+".png", 'PNG') 
-    
-def main():
-    print("Please enter area coordinates")
-    print("FORMAT: LEFT TOP WIDTH HEIGHT")
-    
-    coor = input().split(" ")
-    if(len(coor) != 4):
-        print("INVALID")
-        return
-        
-    rect = tuple([int(i) for i in coor])
-    sum = sumArea(rect)
-    saveArea(rect)
-    
-        
-    print(sum)
-    
+
 if __name__ == "__main__":
     while True:
-        main()
+        print("Please enter area coordinates")
+        print("FORMAT: LEFT TOP WIDTH HEIGHT")
+        
+        coor = input().split(" ")
+        if(len(coor) != 4):
+            print("INVALID")
+            return
+            
+        rect = tuple([int(i) for i in coor])
+        sum = sumArea(rect)
+        saveArea(rect)
+        
+            
+        print(sum)
