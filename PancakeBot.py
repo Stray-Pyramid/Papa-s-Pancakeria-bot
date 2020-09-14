@@ -1,23 +1,25 @@
 # Python 3.8.2
-# Last updated 09/11/2020 (MM/DD/YYYY)
+# Last updated 09/14/2020 (MM/DD/YYYY)
 # By StrayPyramid
 
 # Implemented task priority
 # Implemented drinks machine and drinks order interpretation
 
-import time, os, math, sys
-from PIL import ImageOps, ImageGrab
-import win32api, win32con, win32gui
-import numpy as np
+import time, math, sys
+
 from enum import Enum
 
+from win_control import *
 from rect import *
 from constants import *
 from key_codes import *
+from sum_area import *
 
-# Current max rank
-# 14
-# Reason: Drinking making mechanic not implemented into code.
+from station_changer import *
+
+from grill_station import *
+from build_station import *
+from drink_station import *
 
 IngredientSum = {}
 ToppingCounts = {}
@@ -26,101 +28,18 @@ ToppingCounts = {}
 
 INGREDIENT_FP = "item_sums.txt"
 
-FIRST_DAY_COOK_TIME = 16
-DEFAULT_COOK_TIME = 34
-cook_time = 0
-
 #Getting the handler of the active python console
-console_handle = win32gui.GetForegroundWindow()
+CONSOLE_HANDLE = win32gui.GetForegroundWindow()
 IMAGE_SUM_DEBUG = False
 
-STATION = Enum('STATION', 'ORDER GRILL BUILD DRINK')
-PHASE = Enum('PHASE', 'WAITING COOKING COOKED BUILT')
-current_station = STATION.ORDER
 
 # Code Starts Here.
 #------------------------------------------
-
-def grabArea(rect):
-    rect = Rect(rect)
-    rect.translate(Coor.X_PAD, Coor.Y_PAD)
-    
-    im = ImageGrab.grab((rect.left(), rect.top(), rect.right(), rect.bottom()))
-    return im
-
-def sumArea(rect):
-    #rect: Xpos, YPos, Width, Height
-    im = ImageOps.grayscale(grabArea(rect))
-    a = np.array(im.getcolors())
-    a = a.sum()
-    if IMAGE_SUM_DEBUG: print(rect, ":", a)
-    return a    
-    
-def saveArea(rect):
-    im = grabArea(rect)
-    sum = sumArea(rect)
-    im.save("./"+str(sum)+".png", 'PNG')
-
-def pressKey(k):
-    win32api.keybd_event(VK_CODE[k], 0)
-    time.sleep(.05)
-    win32api.keybd_event(VK_CODE[k],0 ,win32con.KEYEVENTF_KEYUP ,0)
-
-def holdKey(k):
-    win32api.keybd_event(VK_CODE[k], 0)
-    time.sleep(.05)
-    
-def releaseKey(k):
-    win32api.keybd_event(VK_CODE[k],0 ,win32con.KEYEVENTF_KEYUP ,0) 
-    time.sleep(.05)
-    
-def upperKey(k):
-    win32api.keybd_event(VK_CODE['shift'], 0)
-    time.sleep(.05)
-    win32api.keybd_event(VK_CODE[k], 0)
-    win32api.keybd_event(VK_CODE[k],0 ,win32con.KEYEVENTF_KEYUP ,0)
-    time.sleep(.05)
-    win32api.keybd_event(VK_CODE['shift'],0 ,win32con.KEYEVENTF_KEYUP ,0)
-
-def writeString(string):
-    for char in string:
-        if char == ' ':
-            pressKey('spacebar')
-        elif char == '!':
-            upperKey('1')
-        elif char.isupper():
-            upperKey(char.lower())
-        else:
-            pressKey(char)  
-            
-def mousePos(cord):
-    win32api.SetCursorPos((cord[0] + Coor.X_PAD, cord[1] + Coor.Y_PAD))
-    
-def leftClick():
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,0,0)
-    time.sleep(.1)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,0,0)
-
-def leftDown():
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,0,0)
-    time.sleep(.1)
-
-def leftUp():
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,0,0)
-    time.sleep(.1)
-
-def clickPos(cord):
-    #print("CLICK", cord)
-    mousePos(cord)
-    leftClick()
-
-def set_foreground_window(handle):
-    win32gui.SetForegroundWindow(handle)
     
 
 def check_sound():
     
-    set_foreground_window(console_handle)
+    set_foreground_window(CONSOLE_HANDLE)
     sound = input("Would you like sound? (Y/N)\n")[0].lower()
     soundState = sumArea(Area.mm_sound)
     if sound == 'y':
@@ -139,7 +58,7 @@ def check_sound():
 def select_save():
     
     # Select the save number
-    set_foreground_window(console_handle)    
+    set_foreground_window(CONSOLE_HANDLE)    
     while True:
         save_slot = input("Which slot? (1 - 3)")
         if save_slot not in ('1', '2', '3'):
@@ -155,7 +74,7 @@ def select_save():
     # Slot already has a save
     print ('This slot already has a save')
     while True:
-        set_foreground_window(console_handle)
+        set_foreground_window(CONSOLE_HANDLE)
         choice = input("Continue or Delete? \n")
         if choice[0].lower() == 'c':
             return continue_from_save(save_slot)
@@ -174,36 +93,37 @@ def select_save():
             
 
 def continue_from_save(slot):
-    print ('Continuing from save...')
+    print ('Continuing from save')
     clickPos(Coor.mm_slot[slot])
     time.sleep(1)
     clickPos(Coor.mm_resume_save)
     
+    print ('Starting level...')
     
-    #sometimes can skip green continue button for loading
-    print ('Loading level...')
-    time.sleep(1)
-    if sumArea(Area.load_continue) == GUISum.load_loading:
-        while sumArea(Area.load_continue) != GUISum.load_continue:
-            time.sleep(1)
-        clickPos(Coor.preload_continue) 
-    
-    print("WHILE LOOP")
-    
-    time.sleep(6)
-    dayStart_sum = sumArea(Area.day_number)
-    print("NOW")
-
-    if dayStart_sum == GUISum.dayStart_tutorial:
+    first_day = False
+    while True:
+        # Click continue button if loading
+        if sumArea(Area.load_continue) == GUISum.load_loading:
+            clickPos(Coor.preload_continue) 
+            
+        # Day 1 is tutorial
+        if sumArea(Area.day_number) == GUISum.dayStart_tutorial:
+            first_day = True
+            break
+            
+        # When cutscene finishes, start the loop
+        if sumArea(Area.order_floor) == GUISum.order_floor:
+            break
+            
+        time.sleep(1)
+            
+    if first_day:
         print ('It is the first day, a tutorial needs completing')
-        print ('Waiting for cutscene to finish...')
         while sumArea(Area.menu_btn) != GUISum.menu_btn:
             time.sleep(2)
         do_tutorial()
         return True
     else:
-        print ('It is not the first day')
-        print ('Waiting for cutscene to finish...')
         while sumArea(Area.menu_btn) != GUISum.menu_btn:
             time.sleep(2)
         print ("Let's go!")
@@ -219,7 +139,7 @@ def get_gender():
 def new_game(save_slot):
     clickPos(Coor.mm_slot[save_slot])
     
-    set_foreground_window(console_handle)
+    set_foreground_window(CONSOLE_HANDLE)
     gender = get_gender()
 
     if gender == 'm':
@@ -229,7 +149,7 @@ def new_game(save_slot):
             
     while True:
         try:
-            set_foreground_window(console_handle)
+            set_foreground_window(CONSOLE_HANDLE)
             name = input("What is your name? \n")
             clickPos(Coor.char_nameField)
             writeString(name)
@@ -246,31 +166,6 @@ def new_game(save_slot):
     clickPos(Coor.intro_skip)
     do_tutorial()
 
-
-
-def change_station(station):
-    global current_station
-    if station == current_station:
-        return
-    
-    if station == STATION.ORDER:
-        clickPos(Coor.s_order)
-    elif station == STATION.GRILL:
-        clickPos(Coor.s_grill)
-    elif station == STATION.BUILD:
-        clickPos(Coor.s_build)
-    elif station == STATION.DRINK:
-        clickPos(Coor.s_drink)
-    else:
-        raise Exception("Tried to switch to non-existent station with ID:", station)
-        
-    current_station = station
-        
-    print("Changing to station ", STATION(station).name)
-    
-    #Time it takes to transition between stations
-    time.sleep(.5)
-    
 def take_order():
     wait_for_order()
     return interpret_order()
@@ -283,7 +178,7 @@ def wait_for_order():
     time.sleep(1)
     screen = sumArea(Area.order_wait)
     while sumArea(Area.order_wait) == screen:
-        time.sleep(1)
+        time.sleep(.5)
     
 
 def move_order_to_line(order):
@@ -294,7 +189,8 @@ def move_order_to_line(order):
         
 def do_tutorial():
     
-    grill = GrillStation()
+    station = StationChanger()
+    grill = GrillStation(station)
     
     #wait until intro sequence is finished
     print ('Waiting for cutscene to finish...')
@@ -304,13 +200,13 @@ def do_tutorial():
     print ("Tutorial Time!")
     
     #click on grill station
-    change_station(STATION.GRILL)
+    station.change(STATION.GRILL)
     
     #click on build station
-    change_station(STATION.BUILD)
+    station.change(STATION.BUILD)
     
     #click on order station
-    change_station(STATION.ORDER)
+    station.change(STATION.ORDER)
     
     #take order, wait for order to complete
     print("Waiting for customer...")
@@ -327,7 +223,7 @@ def do_tutorial():
     leftUp()
     
     #click on grill station
-    change_station(STATION.GRILL)
+    station.change(STATION.GRILL)
     
     #drag order to active order
     mousePos(Coor.line_first_slot)
@@ -357,7 +253,7 @@ def do_tutorial():
     grill.finish_cooking('grill', 6)
     
     #click on build station
-    change_station(STATION.BUILD)
+    station.change(STATION.BUILD)
     
     #drag pancakes to build area
     grill.add_base()
@@ -392,12 +288,11 @@ def do_tutorial():
         time.sleep(1)
     
     #click on order station
-    change_station(STATION.ORDER)
+    station.change(STATION.ORDER)
     
     #END
     print('TUTORIAL COMPLETE!')
        
-        
 def interpret_order():
     #Returns the type of ingredients and number of pancakes / waffles that can order needs
     grillsNeeded = 0
@@ -433,7 +328,7 @@ def interpret_order():
         ingred_type = IngredientTypes[ingredient][0]
         
         print(ingred_type)
-        if ingred_type == 'topping':
+        if ingred_type == 'piece':
             rect = Rect(Area.ticket_toppingNum)
             rect.translate(0, -Area.ticket_spacing * slot)
             countSum = sumArea(rect)
@@ -508,405 +403,19 @@ def interpret_drink():
     return Drink(d_flavour, d_size, d_add)
     
         
-class Order():
-    
-    def __init__(self, ingredients, grillsNeeded, ironsNeeded, drink = None):
-        self.ingredients = ingredients
-        self.num_of_grills = grillsNeeded
-        self.num_of_irons = ironsNeeded
-        self.drink = drink
-        self.drink_made = False
-        
-        self.phase = PHASE.WAITING
-        self.flipped = False
-        self.id = -1
-        
-        self.cook_start_time = 0
-    
-    
-        self.allocated_grills = []
-        self.allocated_irons = []
-    
-    def has_drink(self):
-        return self.drink != None
-    
-    def ready(self):
-        return (self.drink == None or self.drink_made is True) and self.phase is PHASE.BUILT
-    
 
-class GrillStation():
-    
-    grills = [True, True, True, True, True, True, True, True]
-    irons = [True, True, True, True]
-    finished_queue = []
-    
-    def __init__(self, cook_time = DEFAULT_COOK_TIME):
-        self.cook_time = cook_time
-        
-    def can_do_order(self, order):
-        #if the number of grills and irons available is greater than the required from order info, return true
-        if self.grills.count(True) >= order.num_of_grills and self.irons.count(True) >= order.num_of_irons:
-            return True
-        return False
-        
-    def do_order(self, order):
-        change_station(STATION.GRILL)
-        #place batters on grill, and the extras        
-        
-        self.allocate_grills(order)
-        self.allocate_irons(order)
-        
-        print(order.allocated_grills)
-        print(order.allocated_irons)
-        
-        grill_it = 0
-        iron_it  = 0
-        
-        for ingredient in order.ingredients:
-            
-            ingredient_name = ingredient[0]
-            if ingredient_name not in ('pancake', 'french', 'waffle'):
-                continue
-                
-            if len(ingredient) == 2:
-                topping = ingredient[1]
-            else:
-                topping = None
-            
-            if ingredient_name in ('pancake', 'french'):
-                grill_slot = order.allocated_grills[grill_it]
-                grill_it += 1
-                self.place_ingredient('grill', ingredient_name, grill_slot)
-                if topping is not None:
-                    self.place_ingredient('grill', topping, grill_slot)
-            
-            if ingredient_name in ('waffle'):
-                iron_slot = order.allocated_irons[iron_it]
-                iron_it += 1
-                self.place_ingredient('iron', ingredient_name, iron_slot)
-                if topping is not None:
-                    self.place_ingredient('iron', topping, iron_slot)
-        
-        order.cook_start_time = time.time()
-        order.phase = PHASE.COOKING
-        print("Order %s has started cooking" % order.id)
-        
-    def check_orders(self, orders):
-        for order in orders:
-            if order.phase != PHASE.COOKING:
-                continue
-        
-            if order.cook_start_time + self.cook_time <= time.time():
-                #Go to grill
-                change_station(STATION.GRILL)
-                
-                if order.flipped == False:
-                #Flip Pancakes
-                    print ('Flipping order '+str(order.id))
-                    for slot in order.allocated_grills:
-                        self.flip('grill', slot)
-                    for slot in order.allocated_irons:
-                        self.flip('iron', slot)
-                    order.cook_start_time = time.time()
-                    order.flipped = True
-
-                elif order.flipped == True:
-                #Pancakes are cooked
-                    print("Order", str(order.id), "has finished cooking")
-                    for slot in order.allocated_grills:
-                        self.finish_cooking('grill', slot)
-                        self.grills[slot] = True
-                    for slot in order.allocated_irons:
-                        self.finish_cooking('iron', slot)
-                        self.irons[slot] = True
-                        
-                    order.phase = PHASE.COOKED
-                    self.finished_queue.append(order.id)
-                
-    def flip(self, type, slot):
-        if(type == 'grill'):
-            clickPos(Coor.grill[slot])
-        elif(type == 'iron'):
-            clickPos(Coor.iron[slot])
-    
-    def allocate_grills(self, order):
-        allocated_grills = []
-        
-        for i in range(0, 8):
-            if len(allocated_grills) == order.num_of_grills:
-                break
-            if self.grills[i] == True:
-                allocated_grills.append(i)
-                self.grills[i] = False
-            
-                
-        order.allocated_grills = allocated_grills
-
-    def allocate_irons(self, order):
-        allocated_irons = []
-        
-        for i in range(0, 4):
-            if len(allocated_irons) == order.num_of_irons:
-                break
-            if self.irons[i] == True:
-                allocated_irons.append(i)
-                self.irons[i] = False
-            
-                
-        order.allocated_irons = allocated_irons
-    
-    @staticmethod
-    def place_ingredient(type, ingredient, slot):
-        print ('Placing '+ingredient+' on '+type+' at slot '+str(slot))
-        mousePos(IngredientTypes[ingredient][1])
-        time.sleep(.4)
-        leftDown()
-        if type == 'grill':
-            mousePos(Coor.grill[slot])
-        elif type == 'iron':
-            mousePos(Coor.iron[slot])
-        time.sleep(.1)
-        leftUp()    
-    
-    @staticmethod
-    def finish_cooking(type, slot):
-        if type == 'grill':
-            mousePos(Coor.grill[slot])
-        elif type == 'iron':
-            mousePos(Coor.iron[slot])
-        leftDown()
-        time.sleep(.1)
-        mousePos(Coor.gril_confirm)
-        leftUp()
-        time.sleep(.1)
-    
-
-    
-    def pancakes_ready(self):
-        #print("%s pancake orders ready" % len(self.finished_queue))
-        return len(self.finished_queue) != 0
-
-class Drink():
-    def __init__(self, flavour, size, additional):
-        self.flavour = flavour
-        self.size = size
-        self.additional = additional
-    
-    def __repr__(self):
-        return "<Drink %s %s %s>" % (self.flavour, self.size, self.additional)
-        
-    def __str__(self):
-        return "<Drink %s %s %s>" % (self.flavour, self.size, self.additional)
-    
-class DrinksStation():
-
-    def make_drink(self, order):
-        is_tutorial = False
-        
-        if order.drink is None:
-            print("Order has no drink!")
-            return
-    
-        drink = order.drink
-        change_station(STATION.DRINK)
-        time.sleep(1)
-        
-        if sumArea(Area.drink_check) == GUISum.drinks_tutorial:
-            print("TUTORIAL_DETECT")
-            is_tutorial = True
-        
-        # Flavour
-        print("FLAVOUR")
-        clickPos(Coor.d_flav[drink.flavour]) 
-        time.sleep(.3)
-        
-        # Cup size
-        print("CUP SIZE")
-        clickPos(Coor.d_size[drink.size])
-        time.sleep(.7)
-        
-        # Timing click
-        print("POUR")
-        clickPos(Coor.d_pour_btn)
-        time.sleep(.2)
-        clickPos(Coor.d_pour_btn)
-        time.sleep(3)
-        
-        # Milk
-        print("ADDITIONAL")
-        clickPos(Coor.d_add[drink.additional])
-        time.sleep(.55)
-        
-        # Timing click
-        print("POUR")
-        clickPos(Coor.d_pour_btn)
-        
-        if is_tutorial:
-            time.sleep(2)
-            clickPos(Coor.d_my_drinks)
-            time.sleep(.5)
-            clickPos(Coor.d_my_drinks)
-        
-        order.drink_made = True
-
-class BuildStation():
-    
-    def __init__(self):
-        self.order_ready = False
-        self.active_order = None
-        self.drink_queue = []
-    
-    
-    def build_pancake(self, order):
-        if self.order_ready:
-            print("Cannot make pancake, another is ready to serve")
-            return
-        
-        print("Building Pancake for order %s" % order.id)
-        
-        #Go to build station
-        change_station(STATION.BUILD)
-
-        #build pancake
-        for ingredient in order.ingredients:
-            
-            item_name = ingredient[0]
-            item_count = ingredient[1] if len(ingredient) == 2 else None
-            item_type = IngredientTypes[item_name][0]
-            
-            if item_type == 'bread' or item_type == 'waffle':
-                self.add_base()
-                time.sleep(.1)
-            elif item_type == 'topping':
-                self.spread_topping(item_name, item_count)
-            else:
-                self.spread_topping(item_name)
-        
-        #Wait for animations to finish
-        time.sleep(.5)
-        order.phase = PHASE.BUILT
-        self.order_ready = True
-        self.active_order = order
-        
-    
-    def serve_pancake(self):        
-        
-        order_id = self.active_order.id
-        
-        change_station(STATION.BUILD)
-
-        # Finish
-        clickPos(Coor.build_finish)
-        time.sleep(.2)
-        
-        # Place drink
-        if self.active_order.has_drink() and self.active_order.drink_made:
-            drink_i = self.drink_queue.index(order_id)
-            drink_coor = Coor.drink_rack[drink_i]
-            self.drink_queue.remove(order_id)
-            
-            time.sleep(1)
-            mousePos(drink_coor)
-            leftDown()
-            mousePos(Coor.build_tray)
-            leftUp()
-        
-        # Give to customer
-        self.move_ticket_to_tray(order_id)
-
-        #wait until back at build station
-        print('Waiting for customer...')
-        while sumArea(Area.pancake_tray) != GUISum.pancake_tray:
-            time.sleep(1)
-            #Check if day end
-            if sumArea(Area.flipline_logo) == GUISum.flipline_logo:
-                return 0, True
-        
-        
-        self.active_order = None
-        self.order_ready = False
-        
-        return order_id, False
-
-    def move_ticket_to_tray(self, order_id):
-        mousePos((Coor.line_first_slot[0] + (Coor.line_spacing * order_id), Coor.line_first_slot[1]))
-        leftDown()
-        mousePos(Coor.build_tray)
-        leftUp()
-        
-    def add_drink(self, order):
-        self.drink_queue.append(order.id)
-    
-    @staticmethod
-    def get_point_in_ellipse(x,y,deg):
-        # xPos = x cos t
-        # yPos = y sin t
-        xPos = x * (math.cos(math.radians(deg)))
-        yPos = y * (math.sin(math.radians(deg)))
-        return (int(math.floor(xPos)), int(math.floor(yPos)))
-    
-    @staticmethod
-    def add_base():
-        mousePos(Coor.build_base)
-        leftDown()
-        mousePos((Coor.build_center[0] - 20, Coor.build_center[1]))
-        leftUp()
-            
-    def spread_topping(self, name, points=20):
-        
-        if IngredientTypes[name][0] == 'topping':
-            #Step 1: Get number of toppings
-            toppings_num = points
-            if toppings_num == 1:
-                mousePos(IngredientTypes[name][1])
-                leftDown()
-                mousePos(Coor.build_center)
-                time.sleep(.2)
-                leftUp()
-            else:
-                #Step 2: Divide 360 degrees by number of toppings
-                increment = 360 / toppings_num
-                #Step 3: Hope.
-                for x in range(1, toppings_num+1):
-                    mousePos(IngredientTypes[name][1])
-                    leftDown()
-                    time.sleep(.1)
-                    x, y = self.get_point_in_ellipse(45, 45, x*increment)
-                    #print ('Placing topping at '+str(x)+', '+str(y)+' from pancake center')
-                    mousePos((Coor.build_center[0]+x, Coor.build_center[1]+y))
-                    time.sleep(.1)
-                    leftUp()
-                
-        else:
-            points  = int(IngredientTypes[name][2] / 0.1)
-            increment = 360 / points
-            mousePos(IngredientTypes[name][1])
-            leftDown()
-            for x in range(1, points+1):
-                time.sleep(.1)
-                x, y = self.get_point_in_ellipse(45, 45, x*increment)
-                #print ('Placing sprinkle/sauce at '+str(x)+', '+str(y)+' from pancake center')
-                mousePos((Coor.build_center[0]+x, Coor.build_center[1]+y))
-                leftUp()
-            #Buffer
-            time.sleep(.2)
-    
-def get_order_by_id(orders, id):
-    for order in orders:
-        if order.id == id:
-            return order
-    
-    return None
     
 def get_ticketLineNum(orders):
     for i in range(0, 12):
         if get_order_by_id(orders, i) == None:
             return i
             
-def main_loop(is_first_day):
+def gameplay_loop(is_first_day):
 
     orders = []
     store_closed = False
+    time_prev_check = 0
+    order_timeout = 0
     
     #One the first day, cooking time is halved due to the tutorial.
     if is_first_day:
@@ -915,9 +424,10 @@ def main_loop(is_first_day):
         cook_time = DEFAULT_COOK_TIME
     print ('Cooking time set to %s seconds' % cook_time)
     
-    grill_station = GrillStation(cook_time)
-    build_station = BuildStation()
-    drinks_station = DrinksStation()
+    station = StationChanger()
+    grill_station = GrillStation(station, cook_time)
+    build_station = BuildStation(station)
+    drinks_station = DrinksStation(station)
     
     #Main loop goes here.
     print ("MAIN LOOP BEGINNING")
@@ -925,7 +435,7 @@ def main_loop(is_first_day):
     #Avoiding the problems of the blue ribbon
     #TODO Add detection for blue ribbon to prevent station switching every single day
     time.sleep(.5)
-    change_station(STATION.GRILL)
+    station.change(STATION.GRILL)
     
     # TASK PRIORITY
     # 
@@ -941,8 +451,10 @@ def main_loop(is_first_day):
         grill_station.check_orders(orders)
         
         # 2. Check for new customers
-        if not store_closed:
-            change_station(STATION.ORDER)
+        if not store_closed and time_prev_check + order_timeout < time.time():
+        
+            station.change(STATION.ORDER)
+            # If customer is waiting at counter
             if sumArea(Area.order_floor) != GUISum.order_floor and (len(orders) < 12):
                 print ('Customer detected!')
                 
@@ -958,7 +470,22 @@ def main_loop(is_first_day):
                 if sumArea(Area.store_sign) == GUISum.closed_sign:
                     store_closed = True
                 
+                time_prev_check = time.time()
+                order_timeout = 5
+                
                 continue
+                
+            else:
+                # Check if a customer is approaching counter
+                if sumArea(Area.store_floor) == GUISum.store_floor:
+                    # No customers approaching
+                    time_prev_check = time.time()
+                    order_timeout = 8
+                else:
+                    # Customer approaching
+                    time_prev_check = time.time()
+                    order_timeout = 3
+                
         
         # 3. Make drinks for orders
         drink_made = False
@@ -976,7 +503,7 @@ def main_loop(is_first_day):
         for order in orders:
             
             #if needed number of grills is available,
-            if order.phase == PHASE.WAITING:
+            if order.phase == ORDER_PHASE.WAITING:
                 if grill_station.can_do_order(order):
                     grill_station.do_order(order)
                     started_order = True
@@ -990,18 +517,23 @@ def main_loop(is_first_day):
             
             build_station.build_pancake(order)
             
-            continue
+
 
         # 6. Serve pancake  
         # Day finishes when the last order is served
         if build_station.order_ready:
-            order_id, day_finished = build_station.serve_pancake()
+            order_id = build_station.serve_pancake()
             
-            if day_finished:
-                print ('Level complete')
-                orders.clear()
-                return
-                
+            #wait until back at build station or day finished
+            print('Waiting for customer...')
+            while sumArea(Area.pancake_tray) != GUISum.pancake_tray:
+                time.sleep(.5)
+                #Check if day end
+                if sumArea(Area.flipline_logo) == GUISum.flipline_logo:
+                    print ('Level complete')
+                    orders.clear()
+                    return
+              
             # Remove order from orders
             for order in orders:
                 if order.id == order_id:
@@ -1013,6 +545,7 @@ def start_next_day():
     print('Waiting...')
     while sumArea(Area.continue1) != GUISum.continue1:
         time.sleep(1)
+        
     clickPos(Coor.daycom_continue1)
     time.sleep(4)
     clickPos(Coor.daycom_skipslots)
@@ -1030,34 +563,6 @@ def start_next_day():
         time.sleep(2)
     print("Let's go!")
     
-    
-    
-def startBot():
-
-    #Start on preloader screen
-    clickPos(Coor.preload_continue)
-    
-    print('Waiting for intro to finish...')
-    while sumArea(Area.mm_play) != GUISum.play_button:
-        time.sleep(2)
-
-    #Check sound
-    check_sound()
-    
-    #Click Play
-    clickPos(Coor.mm_play)
-    
-    #Select save
-    is_first_day = select_save()
-    
-    #Game begins here, at the point where customers are coming into your store
-    game_loop(is_first_day)
-    
-def game_loop(is_first_day = False):
-    while True:
-        main_loop(is_first_day)
-        is_first_day = False
-        start_next_day()
     
 def load_items():
     global IngredientSum
@@ -1120,8 +625,47 @@ def add_ingredient(item_sum: int, slot: int, drink=False):
     
     
 def input_console():
-    set_foreground_window(console_handle)
+    set_foreground_window(CONSOLE_HANDLE)
     return input()
+
+    
+def start_game():
+
+    #Start on preloader screen
+    clickPos(Coor.preload_continue)
+    
+    print('Waiting for intro to finish...')
+    print('')
+    print('=========')
+    print('If the intro has finished but the script does not detect it,')
+    print('the window is misaligned. You will need to update the')
+    print('X_PAD and Y_PAD game coordinates and restart the script.')
+    print('=========')
+    print('')
+    
+    while sumArea(Area.mm_play) != GUISum.play_button:
+        time.sleep(2)
+
+    #Check sound
+    check_sound()
+    
+    #Click Play
+    clickPos(Coor.mm_play)
+    
+    # Transition delay
+    time.sleep(1.2)
+    
+    #Select save
+    is_first_day = select_save()
+    
+    #Game begins here
+    main_loop(is_first_day)
+    
+def main_loop(is_first_day = False):
+    while True:
+        gameplay_loop(is_first_day)
+        is_first_day = False
+        start_next_day()
    
 if __name__ == "__main__":
     load_items()
@@ -1130,15 +674,15 @@ if __name__ == "__main__":
         if sys.argv[1] == 'io':
             interpret_order()
         elif sys.argv[1] == 'continue_first':
-            game_loop(is_first_day = True)
+            main_loop(is_first_day = True)
         elif sys.argv[1] == 'continue':
-            game_loop()
+            main_loop()
         elif sys.argv[1] == 'load':
             print(IngredientSum)
             print(ToppingCounts)
     
     else:
-        startBot()
+        start_game()
 
 
 

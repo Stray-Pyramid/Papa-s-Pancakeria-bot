@@ -1,18 +1,24 @@
 class GUISum:
-    order_floor = 1444,
-    pancake_tray = 1514,
     flipline_logo = 34737,
     continue1 = 25562,
     menu_btn = 12564,
     play_button = 20262,
+    
     sound_active = 6021,
     sound_muted = 3414,
+    
     load_loading = 140,
     load_continue = 5243,
+    
     empty_slot = 7790,
+    closed_sign = 4322,
+    pancake_tray = 1514,
+
     dayStart_tutorial = 26008,
-    closed_sign = 4322
-    drinks_tutorial = 3627
+    drinks_tutorial = 3627,   
+    
+    order_floor = 1444,
+    store_floor = 3928
 
 class Coor:
     # Set to the top left pixel of the game window. 
@@ -156,7 +162,10 @@ class Area:
     menu_btn = (17, 451, 41, 12)
     
     #Area of floor where new customers feet will be. Used to detect customers waiting for you to take their order
-    order_floor = (120, 365, 20, 30)
+    order_floor = (120, 365, 20, 30) 
+    
+    # Used to detect approaching customers
+    store_floor = (111, 343, 528, 4)
     
     #Used to detect when customers have finished reviewing their pancake.
     pancake_tray = (300, 350, 20, 20)
@@ -215,20 +224,20 @@ IngredientTypes = {
     'pecan_mix':            ['mix', (462, 355)],
     'bacon_mix':            ['mix', (149, 355)],
     
-    'butterpad':            ['topping', (445, 235)],
-    'banana':               ['topping', (445, 315)],
-    'strawberry':           ['topping', (445, 275)],
+    'butterpad':            ['piece', (445, 235)],
+    'banana':               ['piece', (445, 315)],
+    'strawberry':           ['piece', (445, 275)],
     
-    'blueberry':            ['sprinkle', (175, 235), 2.1],
-    'choc_chip':            ['sprinkle', (172, 283), 3],
-    'raspberry':            ['sprinkle', (177, 326), 2],
-    'cinnamon':             ['sprinkle', (441, 192), 2.1],
-    'sugar':                ['sprinkle', (175, 198), 2.2],
+    'blueberry':            ['sprinkle', (175, 235), 2],
+    'choc_chip':            ['sprinkle', (172, 283), 6],
+    'raspberry':            ['sprinkle', (177, 326), 2.2],
+    'cinnamon':             ['sprinkle', (441, 192), 4.5],
+    'sugar':                ['sprinkle', (175, 198), 4.5],
     
-    'blueberry_sauce':      ['sauce', (155, 140), 2],
-    'hot_sauce':            ['sauce', (420, 140), 2],
-    'whipped_cream':        ['sauce', (195, 133), 1.7],
-    'honey':                ['sauce', (467, 133), 2],
+    'blueberry_sauce':      ['sauce', (155, 140), 4],
+    'hot_sauce':            ['sauce', (420, 140), 4],
+    'whipped_cream':        ['sauce', (195, 133), 3.5],
+    'honey':                ['sauce', (467, 133), 4],
     
     # Bread COMBOS
     # combo_name : ItemType, Bread, Mixin

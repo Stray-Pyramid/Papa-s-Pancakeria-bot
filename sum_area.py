@@ -6,6 +6,7 @@ from PIL import ImageOps, ImageGrab
 import numpy as np
 
 from constants import *
+from rect import *
 
 def grabArea(rect):
     rect = Rect(rect)
@@ -34,7 +35,7 @@ if __name__ == "__main__":
         coor = input().split(" ")
         if(len(coor) != 4):
             print("INVALID")
-            return
+            continue
             
         rect = tuple([int(i) for i in coor])
         sum = sumArea(rect)
