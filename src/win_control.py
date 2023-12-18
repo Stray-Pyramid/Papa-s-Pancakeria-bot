@@ -1,8 +1,8 @@
 import pyautogui
 import time
 
-from rect import *
-from constants import *
+from .rect import *
+from .constants.constants import *
 
 def pressKey(key: str) -> None:
     pyautogui.press(keys=key, interval=0.05)

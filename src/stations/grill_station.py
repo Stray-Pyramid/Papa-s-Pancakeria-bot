@@ -1,10 +1,10 @@
 import time
 
-from constants import *
-from win_control import *
-from sum_area import *
-from order import *
-from station_changer import *
+from ..constants.constants import *
+from ..win_control import *
+from ..sum_area import *
+from ..order import *
+from ..station_changer import *
 
 FIRST_DAY_COOK_TIME = 16
 DEFAULT_COOK_TIME = 34

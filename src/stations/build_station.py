@@ -1,10 +1,10 @@
 import time, math
 
-from constants import *
-from win_control import *
-from sum_area import *
-from order import *
-from station_changer import *
+from ..constants.constants import *
+from ..win_control import *
+from ..sum_area import *
+from ..order import *
+from ..station_changer import *
 
 class BuildStation():
     

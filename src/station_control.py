@@ -1,8 +1,8 @@
 import enum
 import time
 
-from constants import Coor
-from win_control import clickPos
+from .constants.constants import Coor
+from .win_control import clickPos
 
 STATION = enum('STATION', 'ORDER GRILL BUILD DRINK')
 

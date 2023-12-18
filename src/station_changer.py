@@ -1,7 +1,7 @@
 import time
 from enum import Enum
 
-from win_control import *
+from .win_control import *
 
 STATION = Enum('STATION', 'ORDER GRILL BUILD DRINK')
 

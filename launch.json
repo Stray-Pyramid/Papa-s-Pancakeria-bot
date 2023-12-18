@@ -5,7 +5,7 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/PancakeBot.py",
+            "program": "${workspaceFolder}/run.py",
             "console": "integratedTerminal",
             "justMyCode": "false"
         }

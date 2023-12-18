@@ -5,8 +5,8 @@
 from PIL import ImageOps, ImageGrab
 import numpy as np
 
-from constants import *
-from rect import *
+from .constants.constants import *
+from .rect import *
 
 def grabArea(rect):
     rect = Rect(rect)

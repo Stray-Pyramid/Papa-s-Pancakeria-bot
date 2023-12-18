@@ -5,16 +5,16 @@
 import time
 import pygetwindow
 
-from win_control import *
-from rect import *
-from constants import *
-from sum_area import *
+from .win_control import *
+from .rect import *
+from .constants.constants import *
+from .sum_area import *
 
-from station_changer import *
+from .station_changer import *
 
-from stations.grill_station import *
-from stations.build_station import *
-from stations.drink_station import *
+from .stations.grill_station import *
+from .stations.build_station import *
+from .stations.drink_station import *
 
 class PancakeBot():
     IngredientSum = {}
@@ -22,7 +22,7 @@ class PancakeBot():
 
     # Pancake cook time: 33 seconds, 16 seconds for first day
 
-    INGREDIENT_FP = "item_sums.txt"
+    INGREDIENT_FP = "./src/constants/item_sums.txt"
 
     # Getting the handler of the active python console
     CONSOLE_WINDOW: pygetwindow.Win32Window
@@ -38,7 +38,7 @@ class PancakeBot():
         
         self.PANCAKE_WINDOW.moveTo(1800, 800)
     
-    def Start(self, arg):
+    def Start(self, arg=None):
         if arg is None:
             self.start_game()
         
@@ -198,7 +198,7 @@ class PancakeBot():
         while sumArea(Area.order_wait) == screen:
             time.sleep(.5)
         
-
+    @staticmethod
     def move_order_to_line(order):
         mousePos(Coor.line_active)
         leftDown()
@@ -331,16 +331,16 @@ class PancakeBot():
                 continue
             
             # If sum doesn't exist, prompt the user for name and add it
-            if sum not in IngredientSum:
+            if sum not in self.IngredientSum:
                 self.add_ingredient(sum, slot)
             
             # If ticket slot is empty, no action required
-            if IngredientSum[sum] == 'empty':
+            if self.IngredientSum[sum] == 'empty':
                 print('Slot '+str(slot+1)+' is empty')
                 continue
     
             # If regular slot, lookup and process
-            ingredient = IngredientSum[sum]
+            ingredient = self.IngredientSum[sum]
             print('Found '+ingredient)
             
             ingred_type = IngredientTypes[ingredient][0]
@@ -351,8 +351,8 @@ class PancakeBot():
                 rect.translate(0, -Area.ticket_spacing * slot)
                 countSum = sumArea(rect)
                 print(countSum)
-                if countSum in ToppingCounts:
-                    topping_count = ToppingCounts[countSum]
+                if countSum in self.ToppingCounts:
+                    topping_count = self.ToppingCounts[countSum]
                     print(topping_count, "pieces of", ingredient)
                 else:
                     print ('Toppping count sum not found for slot ' + str(slot+1) + ', Sum: ' + str(countSum))
@@ -396,33 +396,33 @@ class PancakeBot():
         
         sum = sumArea(Area.t_d_size)
         print(sum)
-        if IngredientSum[sum] == 'empty':
+        if self.IngredientSum[sum] == 'empty':
                 print('Drinks slot is empty')
                 return None
         
         # Left slot - drink flavour
         sum = sumArea(Area.t_d_flavour)
-        if sum not in IngredientSum:
+        if sum not in self.IngredientSum:
             print("DRINK FLAVOUR NOT FOUND")
             self.add_ingredient(sum, 7, drink=True)
         
-        d_flavour = IngredientSum[sum]
+        d_flavour = self.IngredientSum[sum]
         
         # Middle slot - drink size
         sum = sumArea(Area.t_d_size)
-        if sum not in IngredientSum:
+        if sum not in self.IngredientSum:
             print("DRINK SIZE NOT FOUND")
             self.add_ingredient(sum, 7, drink=True)
         
-        d_size = IngredientSum[sum]
+        d_size = self.IngredientSum[sum]
         
         # Right slot - drink base
         sum = sumArea(Area.t_d_additional)
-        if sum not in IngredientSum:
+        if sum not in self.IngredientSum:
             print("DRINK ADDITIONAL NOT FOUND")
             self.add_ingredient(sum, 7, drink=True)
         
-        d_add = IngredientSum[sum]
+        d_add = self.IngredientSum[sum]
 
         return Drink(d_flavour, d_size, d_add)
         
@@ -588,10 +588,7 @@ class PancakeBot():
         print("Let's go!")
         
         
-    def load_items(self):
-        global IngredientSum
-        global ToppingCounts
-        
+    def load_items(self):        
         with open(self.INGREDIENT_FP, 'r') as f:
             for line in f:
                 i_data = line.strip()
@@ -602,22 +599,20 @@ class PancakeBot():
                 
                 if item_name[:-1] == "item_count_":
                     topping_count = int(item_name[-1])
-                    ToppingCounts[item_sum] = topping_count
+                    self.ToppingCounts[item_sum] = topping_count
                 else:
-                    IngredientSum[item_sum] = item_name
+                    self.IngredientSum[item_sum] = item_name
 
     def add_topping_count(self, topping_sum: int, topping_count: int):
-        global ToppingCounts
 
         with open(self.INGREDIENT_FP, 'a+') as f:
             f.seek(0, 2)
             f.write("%s:item_count_%s\n" % (topping_sum, topping_count))
         
-        ToppingCounts[topping_sum] = topping_count
+        self.ToppingCounts[topping_sum] = topping_count
         
         
     def add_ingredient(self, item_sum: int, slot: int, drink=False):
-        global IngredientSum
         
         print('Found unregisterd ingredient')
         print('Slot: '+str(slot+1))
@@ -630,7 +625,7 @@ class PancakeBot():
             for _,key in enumerate(IngredientTypes):
                 
                 if item_name == key or item_name == 'empty':
-                    IngredientSum[item_sum] = item_name
+                    self.IngredientSum[item_sum] = item_name
                         
                     with open(self.INGREDIENT_FP, 'a+') as f:
                         f.seek(0, 2)
@@ -641,7 +636,7 @@ class PancakeBot():
                 quit()
                 
         else:
-            IngredientSum[item_sum] = item_name
+            self.IngredientSum[item_sum] = item_name
             with open(self.INGREDIENT_FP, 'a+') as f:
                 f.seek(0, 2)
                 f.write("%s:%s\n" % (item_sum, item_name))

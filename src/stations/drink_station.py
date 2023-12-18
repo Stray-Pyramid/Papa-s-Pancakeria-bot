@@ -1,10 +1,10 @@
 import time
 
-from constants import *
-from win_control import *
-from sum_area import *
-from order import *
-from station_changer import *
+from ..constants.constants import *
+from ..win_control import *
+from ..sum_area import *
+from ..order import *
+from ..station_changer import *
 
 class Drink():
     def __init__(self, flavour, size, additional):
