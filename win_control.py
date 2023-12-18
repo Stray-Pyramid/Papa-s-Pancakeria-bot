@@ -19,7 +19,7 @@ def writeString(string):
     pyautogui.typewrite(string, interval=0.1)
             
 def mousePos(cord):
-    pyautogui.moveTo(cord[0] + Coor.X_PAD, cord[1] + Coor.Y_PAD)
+    pyautogui.moveTo(cord[0] + Coor.X_PAD, cord[1] + Coor.Y_PAD, _pause = False)
     
 def leftClick():
     pyautogui.leftClick()
@@ -32,5 +32,5 @@ def leftUp(delay = 0.1):
     pyautogui.mouseUp(button='left')
     time.sleep(delay)
 
-def clickPos(cord, delay=0):
-    pyautogui.leftClick(cord[0] + Coor.X_PAD, cord[1] + Coor.Y_PAD, duration=delay)
+def clickPos(cord, interval=0.1):
+    pyautogui.leftClick(cord[0] + Coor.X_PAD, cord[1] + Coor.Y_PAD, interval=interval)

@@ -27,7 +27,8 @@ ToppingCounts = {}
 INGREDIENT_FP = "item_sums.txt"
 
 # Getting the handler of the active python console
-CONSOLE_WINDOW = pygetwindow.getActiveWindow()
+CONSOLE_WINDOW: pygetwindow.Win32Window
+PANCAKE_WINDOW: pygetwindow.Win32Window
 IMAGE_SUM_DEBUG = False
 
 
@@ -188,23 +189,23 @@ def do_tutorial():
     station = StationChanger()
     grill = GrillStation(station)
     
-    #wait until intro sequence is finished
+    # Wait until intro sequence is finished
     print ('Waiting for cutscene to finish...')
     while sumArea(Area.menu_btn) != GUISum.menu_btn:
         time.sleep(2)   
         
     print ("Tutorial Time!")
     
-    #click on grill station
+    # Click on grill station
     station.change(STATION.GRILL)
     
-    #click on build station
+    # Click on build station
     station.change(STATION.BUILD)
     
-    #click on order station
+    # Click on order station
     station.change(STATION.ORDER)
     
-    #take order, wait for order to complete
+    # Take order, wait for order to complete
     print("Waiting for customer...")
     while sumArea(Area.order_floor) == GUISum.order_floor: #empty floor
         time.sleep(1)
@@ -212,81 +213,81 @@ def do_tutorial():
     print ('Customer is ready!')
     wait_for_order()
         
-    #drag ticket to ticket line
+    # Drag ticket to ticket line
     mousePos(Coor.line_active)
     leftDown()
     mousePos(Coor.line_first_slot)
     leftUp()
     
-    #click on grill station
+    # Click on grill station
     station.change(STATION.GRILL)
     
-    #drag order to active order
+    # Drag order to active order
     mousePos(Coor.line_first_slot)
     leftDown()
     mousePos(Coor.line_active)
     leftUp()
     
-    #do pancakes
+    # Do pancakes
     grill.place_ingredient('grill', 'pancake', 5)
     time.sleep(.1)
     grill.place_ingredient('grill', 'pancake', 6)
         
-    #Wait until 16 seconds have passed, then flip pancakes
+    # Wait until 16 seconds have passed, then flip pancakes
     print('Waiting for pancakes to cook...')
     time.sleep(18)
             
-    grill.flip('grill', 5)
+    grill.flip(GrillStation.GRILL, 5)
     time.sleep(.1)
-    grill.flip('grill', 6)
+    grill.flip(GrillStation.GRILL, 6)
     
     print('Pancakes Flipped')
-    #Wait until 16 seconds have passed, then drag pancakes to green tick.
+    # Wait until 16 seconds have passed, then drag pancakes to green tick.
     time.sleep(18)
     
-    grill.finish_cooking('grill', 5)
+    grill.finish_cooking(GrillStation.GRILL, 5)
     time.sleep(.1)
-    grill.finish_cooking('grill', 6)
+    grill.finish_cooking(GrillStation.GRILL, 6)
     
-    #click on build station
+    # Click on build station
     station.change(STATION.BUILD)
     
-    #drag pancakes to build area
+    # Drag pancakes to build area
     BuildStation.add_base()
     time.sleep(.5)
     BuildStation.add_base()
     
-    #drag 3 butter pads to 3 elliptic points on the pancake
-    #maximum distribution.
+    # Drag 3 butter pads to 3 elliptic points on the pancake
+    # Maximum distribution.
     BuildStation.spread_topping('butterpad', 3)
 
-    #drag and release blueberries in circle path
-    BuildStation.spread_topping('blueberry')
+    # Drag and release blueberries in circle path
+    BuildStation.spread_sprinkle_or_sauce('blueberry')
 
-    #blue and release blueberry sauce in circle path
-    BuildStation.spread_topping('blueberry_sauce')
+    # Blue and release blueberry sauce in circle path
+    BuildStation.spread_sprinkle_or_sauce('blueberry_sauce')
     
-    #click finish
+    # Click finish
     time.sleep(1)
     clickPos(Coor.build_finish)
     time.sleep(1)
     
-    #drag ticket to finish tray
+    # Drag ticket to finish tray
     mousePos(Coor.line_active)
     leftDown()
     time.sleep(.5)
     mousePos(Coor.build_tray)
     leftUp()
     
-    #wait until back at build station
+    # Wait until back at build station
     print ('Waiting for customer...')
     while sumArea(Area.pancake_tray) != GUISum.pancake_tray:
         time.sleep(1)
     
-    #click on order station
+    # Click on order station
     station.change(STATION.ORDER)
     
-    #END
+    # END
     print('TUTORIAL COMPLETE!')
        
 def interpret_order():
@@ -371,6 +372,12 @@ def interpret_drink():
     d_flavour = None
     d_size = None
     d_base = None
+    
+    sum = sumArea(Area.t_d_size)
+    print(sum)
+    if IngredientSum[sum] == 'empty':
+            print('Drinks slot is empty')
+            return None
     
     # Left slot - drink flavour
     sum = sumArea(Area.t_d_flavour)
@@ -664,7 +671,12 @@ def main_loop(is_first_day = False):
         start_next_day()
    
 if __name__ == "__main__":
+    CONSOLE_WINDOW = pygetwindow.getActiveWindow()
+    PANCAKE_WINDOW = pygetwindow.getWindowsWithTitle("Adobe Flash Player 32")[0]
+    
     load_items()
+    
+    PANCAKE_WINDOW.moveTo(1800, 800)
     
     if len(sys.argv) > 1:
         if sys.argv[1] == 'io':

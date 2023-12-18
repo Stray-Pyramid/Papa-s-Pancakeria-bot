@@ -28,8 +28,8 @@ class Coor:
     #X_PAD = 20
     #Y_PAD = 347
     
-    X_PAD = 190
-    Y_PAD = 233
+    X_PAD = 1808
+    Y_PAD = 851
     
     X_LIMIT = X_PAD + 640
     Y_LIMIT = Y_PAD + 480

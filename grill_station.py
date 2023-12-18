@@ -109,7 +109,7 @@ class GrillStation():
                 
     def flip(self, type, slot):
         if(type == self.GRILL):
-            clickPos(Coor.grill[slot], delay=0.1)
+            clickPos(Coor.grill[slot])
             print("Flipping grill", slot+1)
         elif(type == self.IRON):
             clickPos(Coor.iron[slot], delay=0.1)

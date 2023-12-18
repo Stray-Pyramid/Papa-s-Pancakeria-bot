@@ -36,7 +36,7 @@ class BuildStation():
                 self.add_base()
             elif item_type == 'piece':
                 item_count = ingredient[1]
-                self.spread_pieces(item_name, item_count)
+                self.spread_topping(item_name, item_count)
             else:
                 self.spread_sprinkle_or_sauce(item_name)
         
@@ -115,13 +115,13 @@ class BuildStation():
         time.sleep(.3)
             
     @staticmethod
-    def spread_pieces(ingred_name, toppings_num):
+    def spread_topping(ingred_name: str, toppings_num=1):
         
         ingred_type = IngredientTypes[ingred_name][0]
         ingred_pos = IngredientTypes[ingred_name][1]
         
         if(ingred_type != 'piece'):
-            raise Exception("spread_pieces: ingredient not a piece")
+            raise Exception("spread_topping: ingredient not a topping")
         
         if toppings_num == 1:
             # Place in the center
@@ -164,15 +164,17 @@ class BuildStation():
         
         increment = degrees / points
         delay = duration / points
-        
+                
         mousePos(ingred_pos)
         leftDown()
-        for i in range(0, points):
+        x, y = BuildStation.get_point_in_flower(60, 0)
+        mousePos((Coor.build_center[0] + x, Coor.build_center[1] + y))
+        leftUp(delay=0)
+        
+        for i in range(1, points):
             time.sleep(delay)
             x, y = BuildStation.get_point_in_flower(60, i*increment)
-            #print ('Placing sprinkle/sauce at '+str(x)+', '+str(y)+' from pancake center')
             mousePos((Coor.build_center[0] + x, Coor.build_center[1] + y))
-            leftUp(delay=0) # Move to first position and start placing
             
         #Buffer
         time.sleep(.2)
@@ -181,4 +183,4 @@ class BuildStation():
             
 if __name__ == "__main__":
     import sys
-    BuildStation.spread_topping(sys.argv[1])
+    BuildStation.spread_sprinkle_or_sauce(sys.argv[1])
