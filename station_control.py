@@ -1,6 +1,10 @@
+import enum
 import time
 
-STATION = Enum('STATION', 'ORDER GRILL BUILD DRINK')
+from constants import Coor
+from win_control import clickPos
+
+STATION = enum('STATION', 'ORDER GRILL BUILD DRINK')
 
 class StationChanger():
 
@@ -27,5 +31,5 @@ class StationChanger():
             
         print("Changing to station ", STATION(station).name)
         
-        #Time it takes to transition between stations
+        # Time it takes to transition between stations
         time.sleep(.5)

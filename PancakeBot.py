@@ -5,14 +5,12 @@
 # Implemented task priority
 # Implemented drinks machine and drinks order interpretation
 
-import time, math, sys
-
-from enum import Enum
+import time, sys
+import pygetwindow
 
 from win_control import *
 from rect import *
 from constants import *
-from key_codes import *
 from sum_area import *
 
 from station_changer import *
@@ -24,22 +22,20 @@ from drink_station import *
 IngredientSum = {}
 ToppingCounts = {}
 
-#Pancake cook time: 33 seconds, 16 seconds for first day
+# Pancake cook time: 33 seconds, 16 seconds for first day
 
 INGREDIENT_FP = "item_sums.txt"
 
-#Getting the handler of the active python console
-CONSOLE_HANDLE = win32gui.GetForegroundWindow()
+# Getting the handler of the active python console
+CONSOLE_WINDOW = pygetwindow.getActiveWindow()
 IMAGE_SUM_DEBUG = False
 
 
 # Code Starts Here.
 #------------------------------------------
-    
-
 def check_sound():
     
-    set_foreground_window(CONSOLE_HANDLE)
+    CONSOLE_WINDOW.activate()
     sound = input("Would you like sound? (Y/N)\n")[0].lower()
     soundState = sumArea(Area.mm_sound)
     if sound == 'y':
@@ -58,7 +54,7 @@ def check_sound():
 def select_save():
     
     # Select the save number
-    set_foreground_window(CONSOLE_HANDLE)    
+    CONSOLE_WINDOW.activate()
     while True:
         save_slot = input("Which slot? (1 - 3)")
         if save_slot not in ('1', '2', '3'):
@@ -74,7 +70,7 @@ def select_save():
     # Slot already has a save
     print ('This slot already has a save')
     while True:
-        set_foreground_window(CONSOLE_HANDLE)
+        CONSOLE_WINDOW.activate()
         choice = input("Continue or Delete? \n")
         if choice[0].lower() == 'c':
             return continue_from_save(save_slot)
@@ -139,7 +135,7 @@ def get_gender():
 def new_game(save_slot):
     clickPos(Coor.mm_slot[save_slot])
     
-    set_foreground_window(CONSOLE_HANDLE)
+    CONSOLE_WINDOW.activate()
     gender = get_gender()
 
     if gender == 'm':
@@ -149,7 +145,7 @@ def new_game(save_slot):
             
     while True:
         try:
-            set_foreground_window(CONSOLE_HANDLE)
+            CONSOLE_WINDOW.activate()
             name = input("What is your name? \n")
             clickPos(Coor.char_nameField)
             writeString(name)
@@ -256,19 +252,19 @@ def do_tutorial():
     station.change(STATION.BUILD)
     
     #drag pancakes to build area
-    grill.add_base()
+    BuildStation.add_base()
     time.sleep(.5)
-    grill.add_base()
+    BuildStation.add_base()
     
     #drag 3 butter pads to 3 elliptic points on the pancake
     #maximum distribution.
-    grill.spread_topping('butterpad', 3)
+    BuildStation.spread_topping('butterpad', 3)
 
     #drag and release blueberries in circle path
-    grill.spread_topping('blueberry')
+    BuildStation.spread_topping('blueberry')
 
     #blue and release blueberry sauce in circle path
-    grill.spread_topping('blueberry_sauce')
+    BuildStation.spread_topping('blueberry_sauce')
     
     #click finish
     time.sleep(1)
@@ -625,7 +621,7 @@ def add_ingredient(item_sum: int, slot: int, drink=False):
     
     
 def input_console():
-    set_foreground_window(CONSOLE_HANDLE)
+    CONSOLE_WINDOW.activate()
     return input()
 
     

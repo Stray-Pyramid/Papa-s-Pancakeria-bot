@@ -28,9 +28,8 @@ class Coor:
     #X_PAD = 20
     #Y_PAD = 347
     
-    # Flipline
-    X_PAD = 28
-    Y_PAD = 353
+    X_PAD = 190
+    Y_PAD = 233
     
     X_LIMIT = X_PAD + 640
     Y_LIMIT = Y_PAD + 480
