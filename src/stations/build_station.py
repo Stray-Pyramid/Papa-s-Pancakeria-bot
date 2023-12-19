@@ -1,4 +1,8 @@
 import time, math
+import numpy as np
+from scipy.integrate import quad, solve_ivp
+
+from src.topping import Toppings
 
 from ..constants.constants import *
 from ..win_control import *
@@ -105,45 +109,70 @@ class BuildStation():
         
         return int(x), int(y)
     
+    @staticmethod
+    def get_point_in_spikey_flower(theta):
+        petals = 6
+        radius = -10
+        
+        fx = np.abs((35/np.pi) * (np.mod((petals*theta) - np.pi/2, 2*np.pi) - np.pi)) + 35
+
+        x = (radius + fx) * math.cos(theta)
+        y = (radius + fx) * math.sin(theta)
+        
+        return int(x), int(y)
+    
+    @staticmethod 
+    def get_points_in_spiral(size, loops):
+        points = 250
+        theta = (2 * np.pi) / points
+        
+        point_list = []
+        for i in range(0, points):
+            x = size * (theta * i) * math.cos(theta * i * loops) * 0.9
+            y = size * (theta * i) * math.sin(theta * i * loops)
+            
+            point_list.append((x, y))
+        
+        return point_list
     
     @staticmethod
     def add_base():
         mousePos(Coor.build_base)
+        time.sleep(.1)
         leftDown()
         mousePos((Coor.build_center[0] - 20, Coor.build_center[1]))
-        leftUp()
-        time.sleep(.3)
+        time.sleep(.1)
+        leftUp(delay=0.1)
             
     @staticmethod
     def spread_topping(ingred_name: str, toppings_num=1):
+        topping = Toppings.get(ingred_name)
         
-        ingred_type = IngredientTypes[ingred_name][0]
-        ingred_pos = IngredientTypes[ingred_name][1]
-        
-        if(ingred_type != 'piece'):
-            raise Exception("spread_topping: ingredient not a topping")
+        if(topping.type != 'piece'):
+            raise Exception(f"{topping.name} is a {topping.type}, not a piece")
         
         if toppings_num == 1:
             # Place in the center
-            mousePos(ingred_pos)
+            mousePos(topping.location)
             leftDown()
-            mousePos(Coor.build_center)
+            mousePos(topping.center)
             time.sleep(.2)
             leftUp()
             time.sleep(.2)
         else:
-            #Step 1: Divide 360 degrees by number of toppings
             increment = 360 / toppings_num
-            #Step 2: Hope.
-            for x in range(0, toppings_num):
+            if(toppings_num == 2 or toppings_num == 3):
+                offset = 90
+            elif(toppings_num == 4):
                 offset = 45
             
-                mousePos(ingred_pos)
+            for i in range(0, toppings_num):
+                mousePos(topping.location)
                 leftDown()
                 time.sleep(.1)
-                x, y = BuildStation.get_point_in_ellipse(45, 45, (x*increment)+offset)
+                x, y = BuildStation.get_point_in_ellipse(40, 40, (i*increment+offset))
                 #print ('Placing topping at '+str(x)+', '+str(y)+' from pancake center')
-                mousePos((Coor.build_center[0]+x, Coor.build_center[1]+y))
+                mousePos((topping.center[0]+x, topping.center[1]+y))
                 time.sleep(.1)
                 leftUp()
                 
@@ -152,35 +181,18 @@ class BuildStation():
     @staticmethod
     def spread_sprinkle_or_sauce(ingred_name):
         # Sprinkle or Sauce, flower pattern
-        ingred_type = IngredientTypes[ingred_name][0]
-        ingred_pos = IngredientTypes[ingred_name][1]
-        duration = IngredientTypes[ingred_name][2]
-        
-        if(ingred_type not in ('sauce', 'sprinkle')):
-            raise Exception("spread_sprinkle_or_sauce: invalid ingredient", ingred_name)
-        
-        degrees = 560
-        points = 100
-        
-        increment = degrees / points
-        delay = duration / points
-                
-        mousePos(ingred_pos)
-        leftDown()
-        x, y = BuildStation.get_point_in_flower(60, 0)
-        mousePos((Coor.build_center[0] + x, Coor.build_center[1] + y))
-        leftUp(delay=0)
-        
-        for i in range(1, points):
-            time.sleep(delay)
-            x, y = BuildStation.get_point_in_flower(60, i*increment)
-            mousePos((Coor.build_center[0] + x, Coor.build_center[1] + y))
+        topping = Toppings.get(ingred_name)
             
+        if(topping.type not in ('sauce', 'sprinkle')):
+            raise Exception(f"{topping.name} is a {topping.type}, not a sauce or sprinkle")
+        
+        points = BuildStation.get_points_in_spiral(topping.size, topping.loops)
+        
+        mousePos(topping.location)
+        leftDown()
+        mousePos((topping.center[0] + points[0][0], topping.center[1] + points[0][1]))
+        leftUp(delay=0)
+        move_cursor_along_path(points, speed=topping.speed, offset=topping.center)
+                    
         #Buffer
         time.sleep(.2)
-            
-            
-            
-if __name__ == "__main__":
-    import sys
-    BuildStation.spread_sprinkle_or_sauce(sys.argv[1])

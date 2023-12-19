@@ -1,0 +1,107 @@
+[
+    {
+        "name": "butterpad",
+        "type": "piece",
+        "location": [445, 235],
+        "center": [310, 235],
+        "size": 11.5,
+        "loops": 6.2
+    },
+    {
+        "name": "banana",
+        "type": "piece",
+        "location": [445, 315],
+        "center": [310, 235],
+        "size": 11.5,
+        "loops": 6.2
+    },
+    {
+        "name": "strawberry",
+        "type": "piece",
+        "location": [445, 275],
+        "center": [310, 230],
+        "size": 11.5,
+        "loops": 6.2
+    },
+    {
+        "name": "blueberry",
+        "type": "sprinkle",
+        "location": [175, 235],
+        "center": [308, 235],
+        "speed": 400,
+        "size": 12,
+        "loops": 3.4
+    },
+    {
+        "name": "choc_chip",
+        "type": "sprinkle",
+        "location": [172, 283],
+        "center": [308, 235],
+        "speed": 400,
+        "size": 11.6,
+        "loops": 5.6
+    },
+    {
+        "name": "raspberry",
+        "type": "sprinkle",
+        "location": [177, 326],
+        "center": [315, 235],
+        "speed": 400,
+        "size": 12.5,
+        "loops": 4.2
+    },
+    {
+        "name": "cinnamon",
+        "type": "sprinkle",
+        "location": [441, 192],
+        "center": [308, 235],
+        "speed": 320,
+        "size": 11.5,
+        "loops": 6.2
+    },
+    {
+        "name": "sugar",
+        "type": "sprinkle",
+        "location": [175, 198],
+        "center": [308, 235],
+        "speed": 320,
+        "size": 11.5,
+        "loops": 6.2
+    },
+    {
+        "name": "blueberry_sauce",
+        "type": "sauce",
+        "location": [155, 140],
+        "center": [308, 235],
+        "speed": 350,
+        "size": 11.5,
+        "loops": 6.2
+    },
+    {
+        "name": "whipped_cream",
+        "type": "sauce",
+        "location": [195, 133],
+        "center": [308, 235],
+        "speed": 290,
+        "size": 11.5,
+        "loops": 4.2
+    },
+    {
+        "name": "hot_sauce",
+        "type": "sauce",
+        "location": [427, 133],
+        "center": [308, 235],
+        "speed": 350,
+        "size": 11.5,
+        "loops": 6.2
+    },
+    {
+        "name": "honey_sauce",
+        "type": "sauce",
+        "location": [467, 133],
+        "center": [308, 235],
+        "speed": 350,
+        "size": 11.5,
+        "loops": 6.2
+    }
+]

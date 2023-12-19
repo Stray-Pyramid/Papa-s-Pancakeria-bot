@@ -135,7 +135,10 @@ class Coor:
 
     #Build station controls
     build_base = (74, 345)
-    build_center = (310, 225)   
+    
+    build_center = (309, 225)
+    build_center_sauce = (308, 235)
+    
     build_tray = (170, 335)
     build_finish = (595, 395)
     
@@ -227,16 +230,18 @@ IngredientTypes = {
     'banana':               ['piece', (445, 315)],
     'strawberry':           ['piece', (445, 275)],
     
-    'blueberry':            ['sprinkle', (175, 235), 2],
-    'choc_chip':            ['sprinkle', (172, 283), 6],
-    'raspberry':            ['sprinkle', (177, 326), 2.2],
-    'cinnamon':             ['sprinkle', (441, 192), 4.5],
-    'sugar':                ['sprinkle', (175, 198), 4.5],
+    # Name, Pos, Speed, Size, Loops
+    'blueberry':            ['sprinkle'],
+    'choc_chip':            ['sprinkle'],
+    'raspberry':            ['sprinkle'],
+    'cinnamon':             ['sprinkle'],
+    'sugar':                ['sprinkle'],
     
-    'blueberry_sauce':      ['sauce', (155, 140), 4],
-    'hot_sauce':            ['sauce', (420, 140), 4],
-    'whipped_cream':        ['sauce', (195, 133), 3.5],
-    'honey':                ['sauce', (467, 133), 4],
+    # Name, Pos, Speed, Size, Loops
+    'blueberry_sauce':      ['sauce'],
+    'hot_sauce':            ['sauce'],
+    'whipped_cream':        ['sauce'],
+    'honey':                ['sauce'],
     
     # Bread COMBOS
     # combo_name : ItemType, Bread, Mixin
