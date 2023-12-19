@@ -1,7 +1,7 @@
 import pyautogui
 import time, math
 
-from .rect import *
+from .datatypes.rect import *
 from .constants.constants import *
 
 def pressKey(key: str) -> None:

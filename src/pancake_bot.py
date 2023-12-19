@@ -6,7 +6,7 @@ import time
 import pygetwindow
 
 from .win_control import *
-from .rect import *
+from .datatypes.rect import *
 from .constants.constants import *
 from .sum_area import *
 
