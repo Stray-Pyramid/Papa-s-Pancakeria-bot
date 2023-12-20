@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass
 from typing import List
 
+
 @dataclass
 class Topping:
     name: str
@@ -12,20 +13,22 @@ class Topping:
     loops: float
     speed: float = 0.0
 
+
 class Toppings:
     @staticmethod
     def get(topping_name: str) -> Topping:
-        toppings_list = Toppings._load_toppings('./src/constants/toppings.json')
-            
+        toppings_list = Toppings._load_toppings(
+            './src/constants/toppings.json')
+
         for topping in toppings_list:
             if topping.name == topping_name:
                 return topping
-            
+
         raise Exception(f"Topping not found: {topping_name}")
-            
+
     @staticmethod
     def _load_toppings(filepath: str) -> List[Topping]:
-        with open(filepath, 'r') as file:
+        with open(filepath, 'r', encoding="utf-8") as file:
             json_data = json.load(file)
 
             toppings_list = []
@@ -37,5 +40,5 @@ class Toppings:
 
                 topping_instance = Topping(**topping_data)
                 toppings_list.append(topping_instance)
-                
+
             return toppings_list

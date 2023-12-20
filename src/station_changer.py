@@ -1,34 +1,41 @@
 import time
-from enum import Enum
+from enum import Enum, auto
 
-from .win_control import *
+from .win_control import click_pos
+from .constants.constants import Coor
 
-STATION = Enum('STATION', 'ORDER GRILL BUILD DRINK')
+
+class Station(Enum):
+    ORDER = auto()
+    GRILL = auto()
+    BUILD = auto()
+    DRINK = auto()
+
 
 class StationChanger():
-
     def __init__(self):
-        self.current = STATION.ORDER
+        self.current_station = Station.ORDER
 
-    def change(self, station):        
+    def change(self, station: Station):
         # No need to change station if we are already there
-        if station == self.current:
+        if station == self.current_station:
             return
-        
-        if station == STATION.ORDER:
-            clickPos(Coor.s_order)
-        elif station == STATION.GRILL:
-            clickPos(Coor.s_grill)
-        elif station == STATION.BUILD:
-            clickPos(Coor.s_build)
-        elif station == STATION.DRINK:
-            clickPos(Coor.s_drink)
+
+        if station == Station.ORDER:
+            click_pos(Coor.s_order)
+        elif station == Station.GRILL:
+            click_pos(Coor.s_grill)
+        elif station == Station.BUILD:
+            click_pos(Coor.s_build)
+        elif station == Station.DRINK:
+            click_pos(Coor.s_drink)
         else:
-            raise Exception("Tried to switch to non-existent station with ID:", station)
-            
-        self.current = station
-            
-        print("Changing to station ", STATION(station).name)
-        
-        #Time it takes to transition between stations
+            raise Exception(
+                "Tried to switch to non-existent station with ID:", station)
+
+        self.current_station = station
+
+        print(f"Changing to station {Station(station).name}")
+
+        # Time it takes to transition between stations
         time.sleep(.5)

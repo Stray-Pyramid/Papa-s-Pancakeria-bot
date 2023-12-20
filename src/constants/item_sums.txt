@@ -38,7 +38,7 @@
 7712:item_count_3
 4372:raspberry
 7851:item_count_3
-10481:honey
+10481:honey_sauce
 9308:strawberry
 8093:waffle
 9596:sugar
@@ -47,7 +47,7 @@
 7650:cinnamon
 6463:blueberry
 5358:item_count_1
-10681:honey
+10681:honey_sauce
 12246:blueberry_pancake
 12208:blueberry_pancake
 11934:chocolate_french
@@ -103,7 +103,7 @@
 14516:bacon_waffle
 7280:item_count_6
 7426:item_count_6
-11281:honey
+11281:honey_sauce
 6075:blueberry
 11213:whipped_cream
 489:empty
