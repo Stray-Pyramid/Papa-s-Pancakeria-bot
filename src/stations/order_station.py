@@ -1,7 +1,7 @@
 import time
 from typing import Dict
 
-from ..constants.constants import Area, IngredientTypes, Coor
+from ..constants.constants import Area, IngredientTypes, Coor, GUISum
 from ..win_control import click_pos
 from ..sum_area import sum_area
 from ..datatypes.rect import Rect
@@ -21,6 +21,15 @@ class OrderStation():
         self.total_orders_taken = 0
 
         self.load_items()
+
+    def customer_ready_to_order(self):
+        return sum_area(Area.order_floor) != GUISum.order_floor
+
+    def customer_is_approaching(self):
+        return sum_area(Area.store_floor) != GUISum.store_floor
+
+    def store_is_closed(self):
+        return sum_area(Area.store_sign) == GUISum.store_sign
 
     def load_items(self):
         with open(self.INGREDIENT_FP, 'r', encoding="utf-8") as file:

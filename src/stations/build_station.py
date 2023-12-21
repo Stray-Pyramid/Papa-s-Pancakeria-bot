@@ -15,17 +15,16 @@ class BuildStation():
         self.active_order: Order | None = None
         self.drink_queue = []
 
-    def build_pancake(self, order: Order):
+    def build_order(self, order: Order):
         if self.active_order:
-            print("Cannot make pancake, one is already being made")
+            print("Cannot make order, one is already being made")
             return
 
         self.active_order = order
 
-        print(f"Building Pancake for order {order.id}")
+        print(f"Building order {order.id}")
         print(order.ingredients)
 
-        # build pancake
         for ingredient in order.ingredients:
 
             item_name = ingredient[0]
@@ -43,13 +42,7 @@ class BuildStation():
         time.sleep(.5)
         order.phase = OrderPhase.BUILT
 
-    def finish_active_order(self) -> Order:
-        if self.active_order is None:
-            raise Exception("Build station has no active order")
-
-        order = self.active_order
-        self.active_order = None
-
+    def finish_order(self, order: Order):
         # Finish
         click_pos(Coor.build_finish)
         time.sleep(.2)
@@ -59,6 +52,17 @@ class BuildStation():
             drink_i = self.drink_queue.index(order.id)
             BuildStation.place_drink(drink_i)
             self.drink_queue.remove(order.id)
+
+        return order
+
+    def finish_active_order(self) -> Order:
+        if self.active_order is None:
+            raise Exception("Build station has no active order")
+
+        order = self.active_order
+        self.active_order = None
+
+        self.finish_order(order)
 
         return order
 

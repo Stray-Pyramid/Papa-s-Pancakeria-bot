@@ -1,7 +1,10 @@
+import time
 from typing import List
+
 from .order import Order
 from .win_control import mouse_pos, left_up, left_down
-from .constants.constants import Coor
+from .sum_area import sum_area
+from .constants.constants import Coor, Area, GUISum
 
 
 class TicketLine():
@@ -72,6 +75,7 @@ class TicketLine():
             raise Exception("Could not find order ticket to dispatch")
 
         self._drop_order_on_dispatch_tray()
+        self._wait_for_customer()
 
     @staticmethod
     def _pickup_active_order():
@@ -99,3 +103,9 @@ class TicketLine():
     def _drop_order_on_dispatch_tray():
         mouse_pos(Coor.build_tray)
         left_up()
+
+    @staticmethod
+    def _wait_for_customer():
+        print("Waiting for customer...")
+        time.sleep(9)
+        print("Over")

@@ -34,10 +34,17 @@ class GrillStation():
 
         return False
 
-    def do_order(self, order: Order):
+    def start_order(self, order: Order,
+                    grills: List[int] | None = None, irons: List[int] | None = None):
+
+        if irons is None:
+            irons = []
+
+        if grills is None:
+            grills = []
+
         # place batters on grill, and the extras
         for ingredient in order.ingredients:
-
             ingredient_name = ingredient[0]
             if ingredient_name not in ('pancake', 'french', 'waffle'):
                 continue
@@ -48,15 +55,25 @@ class GrillStation():
                 topping = None
 
             if ingredient_name in ('pancake', 'french'):
-                grill_slot = self.allocate_grill(order)
+                if len(grills) != 0:
+                    grill_slot = grills.pop(0)
+                    self.grills[grill_slot] = order
+                else:
+                    grill_slot = self.allocate_grill(order)
+
                 self.place_ingredient(self.GRILL, ingredient_name, grill_slot)
-                if topping is not None:
+                if topping:
                     self.place_ingredient(self.GRILL, topping, grill_slot)
 
             if ingredient_name in ('waffle'):
-                iron_slot = self.allocate_iron(order)
+                if len(irons) != 0:
+                    iron_slot = irons.pop(0)
+                    self.irons[iron_slot] = order
+                else:
+                    iron_slot = self.allocate_iron(order)
+
                 self.place_ingredient(self.IRON, ingredient_name, iron_slot)
-                if topping is not None:
+                if topping:
                     self.place_ingredient(self.IRON, topping, iron_slot)
 
         order.cook_start_time = time.time()
@@ -99,11 +116,11 @@ class GrillStation():
 
         for slot, order_on_grill in enumerate(self.grills):
             if order_on_grill == order:
-                click_pos(Coor.grill[slot])
+                self._flip_grill(slot)
 
         for slot, order_on_iron in enumerate(self.irons):
             if order_on_iron == order:
-                click_pos(Coor.iron[slot])
+                self._flip_iron(slot)
 
         order.cook_start_time = time.time()
         order.flipped = True
@@ -112,12 +129,12 @@ class GrillStation():
         for slot, order_on_grill in enumerate(self.grills):
             if order_on_grill == order:
                 self.grills[slot] = None
-                self._move_to_output(Coor.grill[slot])
+                self._finish_grill(slot)
 
         for slot, order_on_iron in enumerate(self.irons):
             if order_on_iron == order:
                 self.irons[slot] = None
-                self._move_to_output(Coor.iron[slot])
+                self._finish_iron(slot)
 
     def allocate_grill(self, order: Order):
         for slot, order_on_grill in enumerate(self.grills):
@@ -143,14 +160,30 @@ class GrillStation():
         time.sleep(.1)
         left_up()
 
-    def _move_to_output(self, position):
+    def pancakes_ready(self):
+        return len(self.finished_queue) != 0
+
+    @staticmethod
+    def _flip_grill(grill_index: int):
+        click_pos(Coor.grill[grill_index])
+
+    @staticmethod
+    def _flip_iron(iron_index: int):
+        click_pos(Coor.iron[iron_index])
+
+    @staticmethod
+    def _finish_grill(grill_index: int):
+        GrillStation._move_to_output(Coor.grill[grill_index])
+
+    @staticmethod
+    def _finish_iron(iron_index: int):
+        GrillStation._move_to_output(Coor.iron[iron_index])
+
+    @staticmethod
+    def _move_to_output(position):
         mouse_pos(position)
         time.sleep(.1)
         left_down()
         mouse_pos(Coor.grill_output)
         time.sleep(.1)
         left_up()
-
-    def pancakes_ready(self):
-        # print("%s pancake orders ready" % len(self.finished_queue))
-        return len(self.finished_queue) != 0

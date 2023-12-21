@@ -1,4 +1,5 @@
 import sys
+from src.sum_area import sum_area
 from src.pancake_bot import PancakeBot
 from src.stations.build_station import BuildStation
 
@@ -16,5 +17,17 @@ if __name__ == "__main__":
         BuildStation.spread_topping(topping, count)
     elif arg_value == "build_base":
         BuildStation.add_base()
+    elif arg_value == "sum_area":
+        print("Please enter area coordinates")
+        print("FORMAT: LEFT TOP WIDTH HEIGHT")
+
+        coor = input().split(" ")
+        if len(coor) != 4:
+            print("INVALID")
+            sys.exit()
+
+        area = tuple([int(i) for i in coor])
+        print(sum_area(area))
+
     else:
         bot.start(arg_value)

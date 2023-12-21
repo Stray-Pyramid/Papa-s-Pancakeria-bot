@@ -29,19 +29,3 @@ def save_area(rect):
     im = grab_area(rect)
     area_sum = sum_area(rect)
     im.save("./"+str(area_sum)+".png", 'PNG')
-
-
-if __name__ == "__main__":
-    while True:
-        print("Please enter area coordinates")
-        print("FORMAT: LEFT TOP WIDTH HEIGHT")
-
-        coor = input().split(" ")
-        if (len(coor) != 4):
-            print("INVALID")
-            continue
-
-        area = tuple([int(i) for i in coor])
-        save_area(area)
-
-        print(sum_area(area))
