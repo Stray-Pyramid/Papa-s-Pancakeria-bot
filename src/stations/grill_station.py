@@ -8,6 +8,7 @@ from ..order import Order, OrderPhase
 
 class GrillStation():
     TUTORIAL_COOK_DURATION = 16
+    AFTER_TUTORIAL_COOK_DURATION = 18
     DEFAULT_COOK_DURATION = 34
 
     IRON = 0
