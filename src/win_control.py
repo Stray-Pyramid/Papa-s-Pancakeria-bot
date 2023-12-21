@@ -45,7 +45,7 @@ def left_up(delay=0.1):
 
 def click_pos(cord, interval=0.1):
     pyautogui.leftClick(cord[0] + Coor.X_PAD, cord[1] +
-                        Coor.Y_PAD, interval=interval)
+                        Coor.Y_PAD, interval=interval, _pause=False)
 
 
 def calculate_distances(path):

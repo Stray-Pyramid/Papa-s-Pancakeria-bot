@@ -29,6 +29,8 @@ class StationChanger():
             click_pos(Coor.s_build)
         elif station == Station.DRINK:
             click_pos(Coor.s_drink)
+            # Drinks maching deploying...
+            time.sleep(1)
         else:
             raise Exception(
                 "Tried to switch to non-existent station with ID:", station)

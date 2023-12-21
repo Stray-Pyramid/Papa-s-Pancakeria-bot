@@ -3,11 +3,12 @@ from typing import List
 
 from .order import Order
 from .win_control import mouse_pos, left_up, left_down
-from .sum_area import sum_area
-from .constants.constants import Coor, Area, GUISum
+from .constants.constants import Coor
 
 
 class TicketLine():
+    MAXIMUM_TICKETS = 12
+
     def __init__(self):
         self._active_order = None
         self._slots: List[Order | None] = [None] * 10
@@ -34,6 +35,10 @@ class TicketLine():
             self._pickup_active_order()
             self._drop_order_on_line(slot_number)
             return
+
+    def store_active_order(self):
+        if self._active_order:
+            self.store(self._active_order)
 
     # Move order ticket from line to active
     def retrieve(self, order: Order):

@@ -1,51 +1,44 @@
 import time
+from src.drink import Drink
+
+from src.order import Order
 
 from ..constants.constants import Coor, Area, GUISum
 from ..win_control import click_pos
 from ..sum_area import sum_area
 
 
-class DrinksStation():
+class DrinkStation():
 
-    def make_drink(self, order):
-        is_tutorial = False
-
+    def make_drink(self, order: Order):
         if order.drink is None:
             print("Order has no drink!")
             return
 
-        drink = order.drink
-        time.sleep(1)
+        drink: Drink = order.drink
 
+        is_tutorial = False
         if sum_area(Area.drink_check) == GUISum.drinks_tutorial:
-            print("TUTORIAL_DETECT")
+            print("Drinks Tutorial detected")
             is_tutorial = True
 
         # Flavour
-        print("FLAVOUR")
         click_pos(Coor.d_flav[drink.flavour])
-        time.sleep(.3)
+        time.sleep(.30)
 
         # Cup size
-        print("CUP SIZE")
         click_pos(Coor.d_size[drink.size])
-        time.sleep(.7)
-
-        # Timing click
-        print("POUR")
-        click_pos(Coor.d_pour_btn)
-        time.sleep(.2)
-        click_pos(Coor.d_pour_btn)
-        time.sleep(3)
+        if drink.size == 'small':
+            time.sleep(3.2)
+        elif drink.size == 'large':
+            time.sleep(3.6)
 
         # Milk
-        print("ADDITIONAL")
         click_pos(Coor.d_add[drink.additional])
-        time.sleep(.55)
 
         # Timing click
-        print("POUR")
-        click_pos(Coor.d_pour_btn)
+        time.sleep(.55)
+        click_pos(Coor.d_pour_btn, interval=0)
 
         if is_tutorial:
             time.sleep(2)

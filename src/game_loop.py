@@ -7,7 +7,7 @@ from src.station_changer import StationChanger, Station
 from src.stations.order_station import OrderStation
 from src.stations.grill_station import GrillStation
 from src.stations.build_station import BuildStation
-from src.stations.drink_station import DrinksStation
+from src.stations.drink_station import DrinkStation
 from src.ticket_line import TicketLine
 
 from src.tutorial_sequence import TutorialSequence
@@ -19,7 +19,7 @@ class GameLoop:
         self._order_station = OrderStation()
         self._grill_station = GrillStation()
         self._build_station = BuildStation()
-        self._drink_station = DrinksStation()
+        self._drink_station = DrinkStation()
         self._ticket_line = TicketLine()
 
         self._orders: List[Order]
@@ -53,6 +53,73 @@ class GameLoop:
         time.sleep(.5)
         self._station_changer.change(Station.GRILL)
 
+    def _check_grill(self):
+        if self._grill_station.order_needs_attention(self._orders):
+            self._station_changer.change(Station.GRILL)
+            self._grill_station.process_orders(self._orders)
+
+    def _should_check_for_new_customers(self) -> bool:
+        return self._store_open and self._time_prev_check + self._order_timeout < time.time()
+
+    def _check_for_new_customers(self) -> bool:
+        if len(self._orders) > self._ticket_line.MAXIMUM_TICKETS:
+            return False
+
+        self._station_changer.change(Station.ORDER)
+        return self._order_station.customer_ready_to_order()
+
+    def _take_order(self):
+        self._ticket_line.store_active_order()
+        order = self._order_station.take_order()
+        self._orders.append(order)
+        self._ticket_line.add_order(order)
+        self._ticket_line.store(order)
+
+    def _should_close_store(self) -> bool:
+        if self._order_station.store_is_closed():
+            if self._order_station.customer_is_approaching() is False:
+                return True
+
+        return False
+
+    def _make_drink(self) -> bool:
+        for order in self._orders:
+            if order.has_drink() and not order.drink_made:
+                self._station_changer.change(Station.DRINK)
+                self._drink_station.make_drink(order)
+                self._build_station.add_drink(order)
+                return True
+
+        return False
+
+    def _start_cooking_waiting_order(self) -> bool:
+        for order in self._orders:
+            if order.phase == OrderPhase.WAITING:
+                if self._grill_station.can_do_order(order):
+                    self._station_changer.change(Station.GRILL)
+                    self._grill_station.start_order(order)
+                    return True
+
+        return False
+
+    def _order_ready_for_build(self):
+        return self._grill_station.order_ready() and not self._build_station.order_is_built()
+
+    def _build_order(self):
+        order = self._grill_station.finished_queue.pop(0)
+        self._station_changer.change(Station.BUILD)
+        self._ticket_line.retrieve(order)
+        self._build_station.build_order(order)
+
+    def _order_waiting_for_dispatch(self):
+        return self._build_station.order_is_built()
+
+    def _dispatch_built_order(self):
+        self._station_changer.change(Station.BUILD)
+        order = self._build_station.finish_active_order()
+        self._ticket_line.dispatch(order)
+        self._orders.remove(order)
+
     def run(self, is_first_day):
         self._reset(is_first_day)
 
@@ -66,30 +133,21 @@ class GameLoop:
         # 6. Pancake serving
 
         while len(self._orders) != 0 or self._store_open:
-            # 1. Check grill
-            if self._grill_station.order_ready(self._orders):
-                self._station_changer.change(Station.GRILL)
-                self._grill_station.process_orders(self._orders)
+            # 1. Check grill for orders that need to be flipped or have finished cooking
+            self._check_grill()
 
             # 2. Check for new customers
-            if not self._store_open and self._time_prev_check + self._order_timeout < time.time():
+            if self._should_check_for_new_customers():
+                print("Checking for new customers...")
 
-                self._station_changer.change(Station.ORDER)
-
-                if self._order_station.customer_ready_to_order() and len(self._orders) < 12:
+                if self._check_for_new_customers():
                     print('Customer detected!')
-
-                    # Take order
-                    order = self._order_station.take_order()
-                    self._orders.append(order)
-                    self._ticket_line.add_order(order)
-                    self._ticket_line.store(order)
-
+                    self._take_order()
                     print(f'Number of orders: {len(self._orders)}')
 
                     # Check if the store is now closed, and that there are no more customers
                     # If that is the case, there is no longer a need to check for new customers
-                    if self._order_station.store_is_closed() and self._order_station.customer_is_approaching():
+                    if self._should_close_store():
                         self._store_open = False
 
                     self._time_prev_check = time.time()
@@ -107,43 +165,21 @@ class GameLoop:
                     self._time_prev_check = time.time()
                     self._order_timeout = 3
 
-            # 3. Make drinks for orders
-            drink_made = False
-            for order in self._orders:
-                if order.has_drink() and not order.drink_made:
-                    self._station_changer.change(Station.DRINK)
-                    self._drink_station.make_drink(order)
-                    self._build_station.add_drink(order)
-                    drink_made = True
-                    break
-
-            if drink_made:
-                continue
-
-            # 4. Start cooking if spaces are available on the grill
-            started_order = False
-            for order in self._orders:
-
-                # if needed number of grills is available,
-                if order.phase == OrderPhase.WAITING:
-                    if self._grill_station.can_do_order(order):
-                        self._station_changer.change(Station.GRILL)
-                        self._grill_station.start_order(order)
-                        started_order = True
-
+            # 3. Start cooking if spaces are available on the grill
+            started_order = self._start_cooking_waiting_order()
             if started_order:
                 continue
 
+            # 4. Make drinks for orders
+            drink_made = self._make_drink()
+            if drink_made:
+                continue
+
             # 5. Build Pancake
-            if self._grill_station.pancakes_ready() and not self._build_station.order_is_built():
-                order = self._grill_station.finished_queue.pop(0)
-                self._station_changer.change(Station.BUILD)
-                self._ticket_line.retrieve(order)
-                self._build_station.build_order(order)
+            if self._order_ready_for_build():
+                self._build_order()
+                continue
 
             # 6. Serve pancake
-            if self._build_station.order_is_built():
-                self._station_changer.change(Station.BUILD)
-                order = self._build_station.finish_active_order()
-                self._ticket_line.dispatch(order)
-                self._orders.remove(order)
+            if self._order_waiting_for_dispatch():
+                self._dispatch_built_order()

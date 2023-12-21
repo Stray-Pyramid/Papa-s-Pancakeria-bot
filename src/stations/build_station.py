@@ -42,7 +42,7 @@ class BuildStation():
         time.sleep(.5)
         order.phase = OrderPhase.BUILT
 
-    def finish_order(self, order: Order):
+    def finish_order(self, order: Order) -> Order:
         # Finish
         click_pos(Coor.build_finish)
         time.sleep(.2)
@@ -66,10 +66,10 @@ class BuildStation():
 
         return order
 
-    def add_drink(self, order):
+    def add_drink(self, order: Order):
         self.drink_queue.append(order.id)
 
-    def order_is_built(self):
+    def order_is_built(self) -> bool:
         if self.active_order is None:
             return False
 

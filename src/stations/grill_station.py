@@ -82,7 +82,7 @@ class GrillStation():
         print(f"Order {order.id} has started cooking")
 
     # If an order is ready to be flipped or has finished cooking
-    def order_ready(self, orders: List[Order]):
+    def order_needs_attention(self, orders: List[Order]):
         for order in orders:
             if order.phase != OrderPhase.COOKING:
                 continue
@@ -161,7 +161,7 @@ class GrillStation():
         time.sleep(.1)
         left_up()
 
-    def pancakes_ready(self):
+    def order_ready(self):
         return len(self.finished_queue) != 0
 
     @staticmethod
