@@ -15,40 +15,46 @@ from src.tutorial_sequence import TutorialSequence
 
 class GameLoop:
     def __init__(self) -> None:
-        self.station_changer = StationChanger()
-        self.order_station = OrderStation()
-        self.grill_station = GrillStation()
-        self.build_station = BuildStation()
-        self.drink_station = DrinksStation()
-        self.ticket_line = TicketLine()
+        self._station_changer = StationChanger()
+        self._order_station = OrderStation()
+        self._grill_station = GrillStation()
+        self._build_station = BuildStation()
+        self._drink_station = DrinksStation()
+        self._ticket_line = TicketLine()
+
+        self._orders: List[Order]
+        self._store_open = True
+        self._time_prev_check = 0
+        self._order_timeout = 0
 
     def do_tutorial(self):
-        TutorialSequence.run(self.order_station, self.grill_station,
-                             self.build_station, self.station_changer)
+        TutorialSequence.run(self._order_station, self._grill_station,
+                             self._build_station, self._station_changer)
 
-    def run(self, is_first_day):
+    def _reset(self, is_first_day):
+        self._orders = []
 
-        orders: List[Order] = []
+        self._store_open = True
+        self._time_prev_check = 0
+        self._order_timeout = 0
 
-        store_closed = False
-        time_prev_check = 0
-        order_timeout = 0
+        self._order_station.total_orders_taken = 0
 
         # One the first day, cooking time is halved due to the tutorial.
         if is_first_day:
-            self.grill_station.set_cook_duration(
-                GrillStation.TUTORIAL_COOK_DURATION)
+            self._grill_station.set_cook_duration(
+                GrillStation.AFTER_TUTORIAL_COOK_DURATION)
         else:
-            self.grill_station.set_cook_duration(
+            self._grill_station.set_cook_duration(
                 GrillStation.DEFAULT_COOK_DURATION)
-
-        # Main loop goes here.
-        print("MAIN LOOP BEGINNING")
 
         # Avoiding the problems of the blue ribbon
         # TODO Add detection for blue ribbon to prevent station switching every single day
         time.sleep(.5)
-        self.station_changer.change(Station.GRILL)
+        self._station_changer.change(Station.GRILL)
+
+    def run(self, is_first_day):
+        self._reset(is_first_day)
 
         # TASK PRIORITY
         #
@@ -59,55 +65,55 @@ class GameLoop:
         # 5. Pancake building
         # 6. Pancake serving
 
-        while True:
+        while len(self._orders) != 0 or self._store_open:
             # 1. Check grill
-            if self.grill_station.order_ready(orders):
-                self.station_changer.change(Station.GRILL)
-                self.grill_station.process_orders(orders)
+            if self._grill_station.order_ready(self._orders):
+                self._station_changer.change(Station.GRILL)
+                self._grill_station.process_orders(self._orders)
 
             # 2. Check for new customers
-            if not store_closed and time_prev_check + order_timeout < time.time():
+            if not self._store_open and self._time_prev_check + self._order_timeout < time.time():
 
-                self.station_changer.change(Station.ORDER)
+                self._station_changer.change(Station.ORDER)
 
-                if self.order_station.customer_ready_to_order() and len(orders) < 12:
+                if self._order_station.customer_ready_to_order() and len(self._orders) < 12:
                     print('Customer detected!')
 
                     # Take order
-                    order = self.order_station.take_order()
-                    orders.append(order)
-                    self.ticket_line.add_order(order)
-                    self.ticket_line.store(order)
+                    order = self._order_station.take_order()
+                    self._orders.append(order)
+                    self._ticket_line.add_order(order)
+                    self._ticket_line.store(order)
 
-                    print(f'Number of orders: {len(orders)}')
+                    print(f'Number of orders: {len(self._orders)}')
 
-                    # Check if the customer was a closer (CLOSED sign)
-                    # If so, no longer need to check for new customers
-                    if self.order_station.store_is_closed() and self.order_station.customer_is_approaching():
-                        store_closed = True
+                    # Check if the store is now closed, and that there are no more customers
+                    # If that is the case, there is no longer a need to check for new customers
+                    if self._order_station.store_is_closed() and self._order_station.customer_is_approaching():
+                        self._store_open = False
 
-                    time_prev_check = time.time()
-                    order_timeout = 5
+                    self._time_prev_check = time.time()
+                    self._order_timeout = 5
 
                     continue
 
                 # Check if a customer is approaching counter
-                if self.order_station.customer_is_approaching():
+                if self._order_station.customer_is_approaching():
                     # No customers approaching
-                    time_prev_check = time.time()
-                    order_timeout = 8
+                    self._time_prev_check = time.time()
+                    self._order_timeout = 8
                 else:
                     # Customer approaching
-                    time_prev_check = time.time()
-                    order_timeout = 3
+                    self._time_prev_check = time.time()
+                    self._order_timeout = 3
 
             # 3. Make drinks for orders
             drink_made = False
-            for order in orders:
+            for order in self._orders:
                 if order.has_drink() and not order.drink_made:
-                    self.station_changer.change(Station.DRINK)
-                    self.drink_station.make_drink(order)
-                    self.build_station.add_drink(order)
+                    self._station_changer.change(Station.DRINK)
+                    self._drink_station.make_drink(order)
+                    self._build_station.add_drink(order)
                     drink_made = True
                     break
 
@@ -116,34 +122,28 @@ class GameLoop:
 
             # 4. Start cooking if spaces are available on the grill
             started_order = False
-            for order in orders:
+            for order in self._orders:
 
                 # if needed number of grills is available,
                 if order.phase == OrderPhase.WAITING:
-                    if self.grill_station.can_do_order(order):
-                        self.station_changer.change(Station.GRILL)
-                        self.grill_station.start_order(order)
+                    if self._grill_station.can_do_order(order):
+                        self._station_changer.change(Station.GRILL)
+                        self._grill_station.start_order(order)
                         started_order = True
 
             if started_order:
                 continue
 
             # 5. Build Pancake
-            if self.grill_station.pancakes_ready() and not self.build_station.order_is_built():
-                order = self.grill_station.finished_queue.pop(0)
-                self.station_changer.change(Station.BUILD)
-                self.ticket_line.retrieve(order)
-                self.build_station.build_order(order)
+            if self._grill_station.pancakes_ready() and not self._build_station.order_is_built():
+                order = self._grill_station.finished_queue.pop(0)
+                self._station_changer.change(Station.BUILD)
+                self._ticket_line.retrieve(order)
+                self._build_station.build_order(order)
 
             # 6. Serve pancake
-            if self.build_station.order_is_built():
-                self.station_changer.change(Station.BUILD)
-                order = self.build_station.finish_active_order()
-                self.ticket_line.dispatch(order)
-                orders.remove(order)
-
-                # Day finishes when the last order is served
-                if len(orders) == 0 and store_closed:
-                    self.order_station.total_orders_taken = 0
-                    print('Level complete')
-                    return
+            if self._build_station.order_is_built():
+                self._station_changer.change(Station.BUILD)
+                order = self._build_station.finish_active_order()
+                self._ticket_line.dispatch(order)
+                self._orders.remove(order)

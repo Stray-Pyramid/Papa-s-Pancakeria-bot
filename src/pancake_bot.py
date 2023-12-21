@@ -30,5 +30,6 @@ class PancakeBot():
     def main_loop(self, is_first_day=False):
         while True:
             self.game_loop.run(is_first_day)
+            print("Day complete!")
             is_first_day = False
             self.game_gui.start_next_day()
