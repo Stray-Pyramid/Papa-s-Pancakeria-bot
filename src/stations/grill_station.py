@@ -64,6 +64,7 @@ class GrillStation():
 
                 self.place_ingredient(self.GRILL, ingredient_name, grill_slot)
                 if topping:
+                    time.sleep(.3)
                     self.place_ingredient(self.GRILL, topping, grill_slot)
 
             if ingredient_name in ('waffle'):
@@ -75,6 +76,7 @@ class GrillStation():
 
                 self.place_ingredient(self.IRON, ingredient_name, iron_slot)
                 if topping:
+                    time.sleep(.3)
                     self.place_ingredient(self.IRON, topping, iron_slot)
 
         order.cook_start_time = time.time()
@@ -110,7 +112,6 @@ class GrillStation():
 
                 order.phase = OrderPhase.COOKED
                 self.finished_queue.append(order)
-                time.sleep(.4)
 
     def flip_order(self, order: Order):
         print(f'Flipping order {order.id}')
@@ -152,13 +153,11 @@ class GrillStation():
     def place_ingredient(self, type, ingredient, slot):
         print(f'Placing {ingredient} at slot {slot}')
         mouse_pos(IngredientTypes[ingredient][1])
-        time.sleep(.4)
         left_down()
         if type == self.GRILL:
             mouse_pos(Coor.grill[slot])
         elif type == self.IRON:
             mouse_pos(Coor.iron[slot])
-        time.sleep(.1)
         left_up()
 
     def order_ready(self):
@@ -183,8 +182,6 @@ class GrillStation():
     @staticmethod
     def _move_to_output(position):
         mouse_pos(position)
-        time.sleep(.1)
         left_down()
         mouse_pos(Coor.grill_output)
-        time.sleep(.1)
         left_up()

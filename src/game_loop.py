@@ -74,10 +74,11 @@ class GameLoop:
         self._orders.append(order)
         self._ticket_line.add_order(order)
         self._ticket_line.store(order)
+        time.sleep(.1)
 
     def _should_close_store(self) -> bool:
         if self._order_station.store_is_closed():
-            if self._order_station.customer_is_approaching() is False:
+            if not self._order_station.customer_ready_to_order():
                 return True
 
         return False
@@ -148,6 +149,7 @@ class GameLoop:
                     # Check if the store is now closed, and that there are no more customers
                     # If that is the case, there is no longer a need to check for new customers
                     if self._should_close_store():
+                        print("Store closed")
                         self._store_open = False
 
                     self._time_prev_check = time.time()

@@ -19,7 +19,7 @@ class GUISum:
 
     order_floor = 1444,
     store_floor = 3928,
-    store_sign = 4322
+    store_closed_sign = 4322
 
 
 class Coor:

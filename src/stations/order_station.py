@@ -29,7 +29,7 @@ class OrderStation():
         return sum_area(Area.store_floor) != GUISum.store_floor
 
     def store_is_closed(self):
-        return sum_area(Area.store_sign) == GUISum.store_sign
+        return sum_area(Area.store_sign) == GUISum.store_closed_sign
 
     def load_items(self):
         with open(self.INGREDIENT_FP, 'r', encoding="utf-8") as file:

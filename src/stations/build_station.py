@@ -25,7 +25,7 @@ class BuildStation():
         print(f"Building order {order.id}")
         print(order.ingredients)
 
-        for ingredient in order.ingredients:
+        for index, ingredient in enumerate(order.ingredients):
 
             item_name = ingredient[0]
             item_type = IngredientTypes[item_name][0]
@@ -38,8 +38,10 @@ class BuildStation():
             else:
                 self.spread_sprinkle_or_sauce(item_name)
 
+            if index != len(order.ingredients):
+                time.sleep(.1)
+
         # Wait for animations to finish
-        time.sleep(.5)
         order.phase = OrderPhase.BUILT
 
     def finish_order(self, order: Order) -> Order:
@@ -78,7 +80,7 @@ class BuildStation():
     @staticmethod
     def place_drink(drink_i):
         drink_coor = Coor.drink_rack[drink_i]
-        time.sleep(1)
+        time.sleep(.5)
         mouse_pos(drink_coor)
         left_down()
         mouse_pos(Coor.build_tray)
@@ -128,11 +130,9 @@ class BuildStation():
     @staticmethod
     def add_base():
         mouse_pos(Coor.build_base)
-        time.sleep(.1)
         left_down()
         mouse_pos((Coor.build_center[0] - 20, Coor.build_center[1]))
-        time.sleep(.1)
-        left_up(delay=0.1)
+        left_up()
 
     @staticmethod
     def spread_topping(ingred_name: str, toppings_num=1):
@@ -146,9 +146,7 @@ class BuildStation():
             mouse_pos(topping.location)
             left_down()
             mouse_pos(topping.center)
-            time.sleep(.2)
             left_up()
-            time.sleep(.2)
         else:
             increment = 360 / toppings_num
             if toppings_num in (2, 3):
@@ -159,15 +157,11 @@ class BuildStation():
             for i in range(0, toppings_num):
                 mouse_pos(topping.location)
                 left_down()
-                time.sleep(.1)
                 x, y = BuildStation.get_point_in_ellipse(
                     40, 40, (i*increment+offset))
                 # print ('Placing topping at '+str(x)+', '+str(y)+' from pancake center')
                 mouse_pos((topping.center[0]+x, topping.center[1]+y))
-                time.sleep(.1)
                 left_up()
-
-            time.sleep(.2)
 
     @staticmethod
     def spread_sprinkle_or_sauce(ingred_name):
@@ -187,6 +181,3 @@ class BuildStation():
         left_up(delay=0)
         move_cursor_along_path(
             points, speed=topping.speed, offset=topping.center)
-
-        # Buffer
-        time.sleep(.2)

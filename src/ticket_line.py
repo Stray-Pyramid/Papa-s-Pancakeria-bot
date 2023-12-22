@@ -101,8 +101,8 @@ class TicketLine():
     @staticmethod
     def _drop_order_on_line(slot_number: int):
         x_pos = Coor.line_first_slot[0] + (Coor.line_spacing * slot_number)
-        mouse_pos((x_pos, Coor.line_first_slot[1]))
-        left_up()
+        mouse_pos((x_pos, Coor.line_first_slot[1]), delay=0)
+        left_up(delay=0)
 
     @staticmethod
     def _drop_order_on_dispatch_tray():
