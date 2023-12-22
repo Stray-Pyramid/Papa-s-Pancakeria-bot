@@ -1,9 +1,11 @@
 import time
 from typing import List
 
+from src.sum_area import sum_area
+
 from .order import Order
 from .win_control import mouse_pos, left_up, left_down
-from .constants.constants import Coor
+from .constants.constants import Area, Coor, GUISum
 
 
 class TicketLine():
@@ -112,5 +114,6 @@ class TicketLine():
     @staticmethod
     def _wait_for_customer():
         print("Waiting for customer...")
-        time.sleep(9)
-        print("Over")
+        time.sleep(3)
+        while sum_area(Area.dispatch_wait) == GUISum.order_table:
+            time.sleep(.1)

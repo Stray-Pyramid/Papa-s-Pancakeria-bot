@@ -1,25 +1,27 @@
 class GUISum:
-    flipline_logo = 34737,
-    continue1 = 25562,
-    menu_btn = 12564,
-    play_button = 20262,
+    flipline_logo = 34737
+    continue1 = 25562
+    menu_btn = 12564
+    play_button = 20262
 
-    sound_active = 6021,
-    sound_muted = 3414,
+    sound_active = 6021
+    sound_muted = 3414
 
-    load_loading = 140,
-    load_continue = 5243,
+    load_loading = 140
+    load_continue = 5243
 
-    empty_slot = 7790,
-    closed_sign = 4322,
-    pancake_tray = 1514,
+    empty_slot = 7790
+    closed_sign = 4322
+    pancake_tray = 1514
 
-    dayStart_tutorial = 26008,
-    drinks_tutorial = 3627,
+    dayStart_tutorial = 26008
+    drinks_tutorial = 3627
 
-    order_floor = 1444,
-    store_floor = 3928,
+    order_floor = 1444
+    store_floor = 3928
     store_closed_sign = 4322
+
+    order_table = 364
 
 
 class Coor:
@@ -163,10 +165,12 @@ class Area:
         '3': (568, 61, 29, 21)
     }
 
-    # Menu button in lower left when main game is running. Used as confirmation that a cut-scene has finished
+    # Menu button in lower left when main game is running.
+    # Used as confirmation that a cut-scene has finished
     menu_btn = (17, 451, 41, 12)
 
-    # Area of floor where new customers feet will be. Used to detect customers waiting for you to take their order
+    # Area of floor where new customers feet will be.
+    # Used to detect customers waiting for you to take their order
     order_floor = (120, 365, 20, 30)
 
     # Used to detect approaching customers
@@ -184,16 +188,22 @@ class Area:
     # Day Number, visible during store opening
     day_number = (300, 445, 37, 23)
 
-    # Day Title, accompanies day number, used to check when day number is fully visible
+    # Day Title, accompanies day number
+    # Used to check when day number is fully visible
     day_title = (284, 418, 66, 4)
 
     # Used to detect when a customer has finished ordering
     order_wait = (540, 360, 60, 30)
 
+    # Used to detect when a customer has finished reviewing their order
+    # when an order has been dispatched
+    dispatch_wait = (0, 301, 5, 5)
+
     # User to detect if the store is closed.
     store_sign = (527, 355, 18, 41)
 
-    # Continue Area on game load, used to detect when the game is finished loading
+    # Continue Area on game load
+    # Used to detect when the game is finished loading
     load_continue = (550, 440, 4, 35)
     load_screen = (480, 440, 4, 35)
 

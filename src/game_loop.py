@@ -57,6 +57,7 @@ class GameLoop:
         if self._grill_station.order_needs_attention(self._orders):
             self._station_changer.change(Station.GRILL)
             self._grill_station.process_orders(self._orders)
+            time.sleep(.2)
 
     def _should_check_for_new_customers(self) -> bool:
         return self._store_open and self._time_prev_check + self._order_timeout < time.time()
@@ -121,6 +122,9 @@ class GameLoop:
         self._ticket_line.dispatch(order)
         self._orders.remove(order)
 
+        # Wait for the transition back to the build station
+        time.sleep(.3)
+
     def run(self, is_first_day):
         self._reset(is_first_day)
 
@@ -128,8 +132,8 @@ class GameLoop:
         #
         # 1. Pancake flipping and finishing on the grill
         # 2. Getting customers orders
-        # 3. Drinks
-        # 4. Cooking start for orders
+        # 3. Cooking start for orders
+        # 4. Drinks
         # 5. Pancake building
         # 6. Pancake serving
 
@@ -159,13 +163,13 @@ class GameLoop:
 
                 # Check if a customer is approaching counter
                 if self._order_station.customer_is_approaching():
-                    # No customers approaching
-                    self._time_prev_check = time.time()
-                    self._order_timeout = 8
-                else:
                     # Customer approaching
                     self._time_prev_check = time.time()
                     self._order_timeout = 3
+                else:
+                    # No customers approaching
+                    self._time_prev_check = time.time()
+                    self._order_timeout = 8
 
             # 3. Start cooking if spaces are available on the grill
             started_order = self._start_cooking_waiting_order()

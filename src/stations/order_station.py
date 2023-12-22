@@ -1,6 +1,8 @@
 import time
 from typing import Dict
 
+from src.stations.exceptions.ingredient_not_found_exception import IngredientNotFoundException
+
 from ..constants.constants import Area, IngredientTypes, Coor, GUISum
 from ..win_control import click_pos
 from ..sum_area import sum_area
@@ -60,7 +62,7 @@ class OrderStation():
         time.sleep(1)
         screen = sum_area(Area.order_wait)
         while sum_area(Area.order_wait) == screen:
-            time.sleep(.5)
+            time.sleep(.1)
 
     # Returns the type of ingredients and number of pancakes / waffles that can order needs
     def interpret_order(self) -> Order:
@@ -74,13 +76,12 @@ class OrderStation():
             rect.translate(0, -Area.ticket_spacing * slot)
             area_sum = sum_area(rect)
 
-            # If sum doesn't exist, prompt the user for name and add it
-            if area_sum not in self.ingredient_sums:
-                self.add_ingredient_sum(area_sum, slot)
-
             # If ticket slot is empty, no action required
             if self.ingredient_sums[area_sum] == 'empty':
                 break
+
+            if area_sum not in self.ingredient_sums:
+                raise IngredientNotFoundException(area_sum)
 
             # If regular slot, lookup and process
             ingredient = self.ingredient_sums[area_sum]
@@ -135,26 +136,14 @@ class OrderStation():
 
         # Left slot - drink flavour
         area_sum = sum_area(Area.t_d_flavour)
-        if area_sum not in self.ingredient_sums:
-            print("DRINK FLAVOUR NOT FOUND")
-            self.add_ingredient_sum(area_sum, 7, drink=True)
-
         d_flavour = self.ingredient_sums[area_sum]
 
         # Middle slot - drink size
         area_sum = sum_area(Area.t_d_size)
-        if area_sum not in self.ingredient_sums:
-            print("DRINK SIZE NOT FOUND")
-            self.add_ingredient_sum(area_sum, 7, drink=True)
-
         d_size = self.ingredient_sums[area_sum]
 
         # Right slot - drink base
         area_sum = sum_area(Area.t_d_additional)
-        if area_sum not in self.ingredient_sums:
-            print("DRINK ADDITIONAL NOT FOUND")
-            self.add_ingredient_sum(area_sum, 7, drink=True)
-
         d_base = self.ingredient_sums[area_sum]
 
         return Drink(d_flavour, d_size, d_base)
@@ -166,39 +155,3 @@ class OrderStation():
             f.write(f"{topping_sum}:item_count_{topping_count}\n")
 
         self.topping_count_sums[topping_sum] = topping_count
-
-    def load_ingrediet_sums(self):
-        pass
-
-    def add_ingredient_sum(self, item_sum: int, slot: int, drink=False):
-        print('Found unregisterd ingredient')
-        print('Slot: '+str(slot+1))
-        print('Sum: '+str(item_sum))
-        print("Please enter ingredient name")
-
-        item_name = self.input_console()
-
-        if drink is False:
-            for _, key in enumerate(IngredientTypes):
-
-                if item_name == key or item_name == 'empty':
-                    self.ingredient_sums[item_sum] = item_name
-
-                    with open(self.INGREDIENT_FP, 'a+', encoding="utf-8") as f:
-                        f.seek(0, 2)
-                        f.write(f"{item_sum}:{item_name}\n")
-                    break
-            else:
-                print("Ingredient name not found.")
-                quit()
-
-        else:
-            self.ingredient_sums[item_sum] = item_name
-            with open(self.INGREDIENT_FP, 'a+', encoding="utf-8") as f:
-                f.seek(0, 2)
-                f.write("item_sum:item_name\n")
-
-    # TODO Put this in the proper place
-    def input_console(self):
-        self.console_window.activate()
-        return input()
